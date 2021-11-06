@@ -1,5 +1,4 @@
 from __future__ import annotations
-from copy import copy
 import itertools
 import warnings
 
@@ -112,7 +111,7 @@ class DiscreteSemantic(Semantic):
 
     def __init__(self, values: DiscreteValueSpec = None, variable: str = "value"):
 
-        self._values = self._standardize_values(values)
+        self.values = self._standardize_values(values)
         self.variable = variable
 
     def _standardize_values(
@@ -137,7 +136,7 @@ class DiscreteSemantic(Semantic):
     ) -> LookupMapping:
 
         levels = categorical_order(data, scale.order)
-        values = self._values
+        values = self.values
 
         if values is None:
             mapping = dict(zip(levels, self._default_values(len(levels))))
@@ -197,7 +196,11 @@ class ContinuousSemantic(Semantic):
         variable: str = "",  # TODO default?
     ):
 
-        self._values = values
+        if values is None:
+            values = self.default_range
+        # TODO input checks
+
+        self.values = values
         self.variable = variable
 
     @property
@@ -207,12 +210,12 @@ class ContinuousSemantic(Semantic):
     def _infer_map_type(
         self,
         scale: Scale,
-        values: ContinuousValueSpec | None,
+        values: ContinuousValueSpec,
         data: Series,
     ) -> VarType:
         """Determine how to implement the mapping."""
         map_type: VarType
-        if scale is not None and scale.type_declared:
+        if scale.type_declared:
             return scale.scale_type
         elif isinstance(values, (list, dict)):
             return VarType("categorical")
@@ -226,11 +229,9 @@ class ContinuousSemantic(Semantic):
         scale: Scale,
     ) -> NormedMapping | LookupMapping:
 
-        values = self.default_range if self._values is None else self._values
-        order = None if scale is None else scale.order
-        levels = categorical_order(data, order)
-        norm = Normalize() if scale is None or scale.norm is None else copy(scale.norm)
-        map_type = self._infer_map_type(scale, values, data)
+        values = self.values
+        levels = categorical_order(data, scale.order)
+        map_type = self._infer_map_type(scale, self.values, data)
 
         # TODO check inputs ... what if scale.type is numeric but we got a list or dict?
         # (This can happen given the way that _infer_map_type works)
@@ -280,11 +281,7 @@ class ContinuousSemantic(Semantic):
                 return mpl.dates.date2num(pd.to_datetime(x))
 
         transform = RangeTransform(values)
-
-        if not norm.scaled():
-            norm(np.asarray(data))
-
-        mapping = NormedMapping(norm, transform, prepare)
+        mapping = NormedMapping(scale.norm, transform, prepare)
 
         return mapping
 
@@ -469,7 +466,7 @@ class MarkerSemantic(DiscreteSemantic):
     # TODO full types
     def __init__(self, shapes: DiscreteValueSpec = None, variable: str = "marker"):
 
-        self._values = self._standardize_values(shapes)
+        self.values = self._standardize_values(shapes)
         self.variable = variable
 
     def _standardize_value(self, value: str | tuple | MarkerStyle) -> MarkerStyle:
@@ -530,7 +527,7 @@ class LineStyleSemantic(DiscreteSemantic):
         variable: str = "linestyle"
     ):
         # TODO full types
-        self._values = self._standardize_values(styles)
+        self.values = self._standardize_values(styles)
         self.variable = variable
 
     def _standardize_value(self, value: str | DashPattern) -> DashPatternWithOffset:
