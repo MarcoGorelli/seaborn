@@ -15,12 +15,17 @@ from seaborn.palettes import QUAL_PALETTES, color_palette
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Callable, Tuple, Optional
+    from typing import Any, Callable, List, Tuple, Dict, Optional, Union
     from numpy.typing import ArrayLike
     from pandas import Series
     from matplotlib.colors import Colormap
     from matplotlib.scale import Scale
     from seaborn._core.typing import PaletteSpec
+
+    DiscreteValueSpec = Optional[Union[dict, list]]
+    ContinuousValueSpec = Optional[
+        Union[Tuple[float, float], List[float], Dict[Any, float]]
+    ]
 
     DashPattern = Tuple[float, ...]
     DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
@@ -53,22 +58,6 @@ class Semantic:
 
     variable: str
 
-    # TODO semantics should pass values through a validation/standardization function
-    # (e.g., convert marker values into MarkerStyle object, or raise nicely)
-    # (e.g., raise if requested alpha values are outside of [0, 1])
-    # (what's the right name for this function?)
-    def _standardize_value(self, value: Any) -> Any:
-        return value
-
-    def _standardize_values(self, values: Iterable) -> Iterable:
-
-        if isinstance(values, dict):
-            return {k: self._standardize_value(v) for k, v in values.items()}
-        elif isinstance(values, pd.Series):
-            return values.map(self._standardize_value)
-        else:
-            return [self._standardize_value(x) for x in values]
-
     def setup(
         self,
         data: Series,
@@ -76,6 +65,23 @@ class Semantic:
     ) -> SemanticMapping:
 
         raise NotImplementedError()
+
+    def _standardize_value(self, value: Any) -> Any:
+
+        return value
+
+    def _standardize_values(
+        self, values: DiscreteValueSpec | Series
+    ) -> DiscreteValueSpec | Series:
+
+        if values is None:
+            return None
+        elif isinstance(values, dict):
+            return {k: self._standardize_value(v) for k, v in values.items()}
+        elif isinstance(values, pd.Series):
+            return values.map(self._standardize_value)
+        else:
+            return [self._standardize_value(x) for x in values]
 
     def _check_dict_not_missing_levels(self, levels: list, values: dict) -> None:
 
@@ -102,14 +108,16 @@ class Semantic:
 
 class DiscreteSemantic(Semantic):
 
-    _values: list | dict | None
+    _values: DiscreteValueSpec
 
-    def __init__(self, values: list | dict | None = None, variable: str = "value"):
+    def __init__(self, values: DiscreteValueSpec = None, variable: str = "value"):
 
-        self._values = values
+        self._values = self._standardize_values(values)
         self.variable = variable
 
-    def _standardize_values(self, values: Series | list | dict | None):
+    def _standardize_values(
+        self, values: DiscreteValueSpec | Series
+    ) -> DiscreteValueSpec | Series:
 
         if values is None:
             return values
@@ -128,9 +136,8 @@ class DiscreteSemantic(Semantic):
         scale: Scale,
     ) -> LookupMapping:
 
+        levels = categorical_order(data, scale.order)
         values = self._values
-        order = None if scale is None else scale.order
-        levels = categorical_order(data, order)
 
         if values is None:
             mapping = dict(zip(levels, self._default_values(len(levels))))
@@ -146,23 +153,27 @@ class DiscreteSemantic(Semantic):
 
 class BooleanSemantic(DiscreteSemantic):
 
-    def _standardize_values(self, values: Series | list | dict | None):
+    def _standardize_values(
+        self, values: DiscreteValueSpec | Series
+    ) -> DiscreteValueSpec | Series:
 
         # TODO Require that values are in [1, 0, True, False]?
         # (Equivalently, test for equality with 0/1)
 
-        if isinstance(values, Series):
-            # TODO What's best here? If we simply cast to bool, np.nan -> False, bad!
+        if isinstance(values, pd.Series):
+            # What's best here? If we simply cast to bool, np.nan -> False, bad!
             # "boolean"/BooleanDType, is described as experimental/subject to change
             # But if we don't require any particular behavior, is that ok?
             # See https://github.com/pandas-dev/pandas/issues/44293
             return values.astype("boolean")
-        if isinstance(values, list):
+        elif isinstance(values, list):
             return [bool(x) for x in values]
-        if isinstance(values, dict):
+        elif isinstance(values, dict):
             return {k: bool(v) for k, v in values.items()}
-        if values is None:
+        elif values is None:
             return None
+        else:
+            raise TypeError(f"Type of `values` ({type(values)}) not understood.")
 
     def _default_values(self, n: int) -> list:
         if n > 2:
@@ -182,7 +193,7 @@ class ContinuousSemantic(Semantic):
 
     def __init__(
         self,
-        values: tuple[float, float] | list[float] | dict[Any, float] | None = None,
+        values: ContinuousValueSpec = None,
         variable: str = "",  # TODO default?
     ):
 
@@ -196,7 +207,7 @@ class ContinuousSemantic(Semantic):
     def _infer_map_type(
         self,
         scale: Scale,
-        values: tuple[float, float] | list[float] | dict[Any, float] | None,
+        values: ContinuousValueSpec | None,
         data: Series,
     ) -> VarType:
         """Determine how to implement the mapping."""
@@ -288,9 +299,13 @@ class ColorSemantic(Semantic):
         self._palette = palette
         self.variable = variable
 
-    def _standardize_values(self, values: Series | list | dict):
+    def _standardize_values(
+        self, values: DiscreteValueSpec | Series
+    ) -> ArrayLike | dict[Any, tuple[float, ...]] | None:
 
-        if isinstance(values, (pd.Series, list)):
+        if values is None:
+            return None
+        elif isinstance(values, (pd.Series, list)):
             return mpl.colors.to_rgba_array(values)[:, :3]
         else:
             return {k: mpl.colors.to_rgb(v) for k, v in values.items()}
@@ -452,7 +467,7 @@ class ColorSemantic(Semantic):
 class MarkerSemantic(DiscreteSemantic):
 
     # TODO full types
-    def __init__(self, shapes: list | dict | None = None, variable: str = "marker"):
+    def __init__(self, shapes: DiscreteValueSpec = None, variable: str = "marker"):
 
         self._values = self._standardize_values(shapes)
         self.variable = variable
