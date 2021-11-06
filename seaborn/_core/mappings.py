@@ -231,14 +231,10 @@ class ContinuousSemantic(Semantic):
         scale: Scale,
     ) -> NormedMapping | LookupMapping:
 
-        values = self.values
         scale = scale.setup(data)
         levels = categorical_order(data, scale.order)
+        values = self.values
         map_type = self._infer_map_type(scale, self.values, data)
-
-        # TODO check inputs ... what if scale.type is numeric but we got a list or dict?
-        # (This can happen given the way that _infer_map_type works)
-        # And what happens if we have a norm but var type is categorical?
 
         mapping: NormedMapping | LookupMapping
 
@@ -258,7 +254,7 @@ class ContinuousSemantic(Semantic):
 
             return LookupMapping(mapping_dict)
 
-        transform = RangeTransform(values)
+        transform = RangeTransform(values)  # type: ignore  # TODO
         mapping = NormedMapping(scale, transform)
 
         return mapping

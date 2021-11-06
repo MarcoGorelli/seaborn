@@ -292,10 +292,7 @@ class Plot:
         # TODO if we define default semantics, we can use that
         # for initialization and make this more abstract (assuming kwargs match?)
         self._semantics["color"] = ColorSemantic(palette)
-        if order is not None:
-            self.scale_categorical("color", order=order)
-        elif norm is not None:
-            self.scale_numeric("color", norm=norm)
+        self._scale_from_map("facecolor", palette, order)
         return self
 
     def map_facecolor(
@@ -306,10 +303,7 @@ class Plot:
     ) -> Plot:
 
         self._semantics["facecolor"] = ColorSemantic(palette, variable="facecolor")
-        if order is not None:
-            self.scale_categorical("facecolor", order=order)
-        elif norm is not None:
-            self.scale_numeric("facecolor", norm=norm)
+        self._scale_from_map("facecolor", palette, order)
         return self
 
     def map_edgecolor(
@@ -320,10 +314,7 @@ class Plot:
     ) -> Plot:
 
         self._semantics["edgecolor"] = ColorSemantic(palette, variable="edgecolor")
-        if order is not None:
-            self.scale_categorical("edgecolor", order=order)
-        elif norm is not None:
-            self.scale_numeric("edgecolor", norm=norm)
+        self._scale_from_map("edgecolor", palette, order)
         return self
 
     def map_fill(
@@ -333,8 +324,7 @@ class Plot:
     ) -> Plot:
 
         self._semantics["fill"] = BooleanSemantic(values, variable="fill")
-        if order is not None:
-            self.scale_categorical("fill", order=order)
+        self._scale_from_map("fill", values, order)
         return self
 
     def map_marker(
@@ -344,8 +334,7 @@ class Plot:
     ) -> Plot:
 
         self._semantics["marker"] = MarkerSemantic(shapes, variable="marker")
-        if order is not None:
-            self.scale_categorical("marker", order=order)
+        self._scale_from_map("linewidth", shapes, order)
         return self
 
     def map_linestyle(
@@ -355,24 +344,31 @@ class Plot:
     ) -> Plot:
 
         self._semantics["linestyle"] = LineStyleSemantic(styles, variable="linestyle")
-        if order is not None:
-            self.scale_categorical("linestyle", order=order)
+        self._scale_from_map("linewidth", styles, order)
         return self
 
     def map_linewidth(
         self,
         values: tuple[float, float] | list[float] | dict[Any, float] | None = None,
+        order: OrderSpec | None = None,
         norm: Normalize | None = None,
         # TODO clip?
-        order: OrderSpec = None,
     ) -> Plot:
 
         self._semantics["linewidth"] = LineWidthSemantic(values, variable="linewidth")
-        if order is not None:
-            self.scale_categorical("linewidth", order=order)
-        elif norm is not None:
-            self.scale_numeric("linewidth", norm=norm)
+        self._scale_from_map("linewidth", values, order, norm)
         return self
+
+    def _scale_from_map(self, var, values, order, norm=None) -> None:
+
+        if order is not None:
+            self.scale_categorical(var, order=order)
+        elif norm is not None:
+            if isinstance(values, (dict, list)):
+                values_type = type(values).__name__
+                err = f"Cannot use a norm with a {values_type} of {var} values."
+                raise ValueError(err)
+            self.scale_numeric(var, norm=norm)
 
     # TODO have map_gradient?
     # This could be used to add another color-like dimension
