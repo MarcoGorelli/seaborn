@@ -850,7 +850,7 @@ class Plotter:
             if isinstance(scale, IdentityScale):
                 mapping = IdentityMapping(semantic._standardize_values)
             else:
-                mapping = semantic.setup(all_values, scale.setup(all_values))
+                mapping = semantic.setup(all_values, scale)
             self._mappings[var] = mapping
 
     def _plot_layer(

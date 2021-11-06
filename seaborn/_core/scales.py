@@ -41,7 +41,6 @@ class Scale:
         self.order: list[Any] | None = None
         self.formatter: Callable[[Any], str] | None = None
         self.type_declared: bool | None = None
-        ...
 
     def _units_seed(self, data: Series) -> Series:
 
@@ -161,8 +160,8 @@ class DateTimeScale(Scale):
     ):
 
         if isinstance(norm, tuple):
-            norm_dates = np.array(norm, "datetime64[D]")
-            norm = tuple(mpl.dates.date2num(norm_dates))
+            # TODO handle case where norm values are numbers?
+            norm = tuple(mpl.dates.date2num(norm))
 
         super().__init__(scale_obj, norm)
 

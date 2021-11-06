@@ -15,6 +15,7 @@ from seaborn.palettes import QUAL_PALETTES, color_palette
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Callable, List, Tuple, Dict, Optional, Union
+    from numbers import Number
     from numpy.typing import ArrayLike
     from pandas import Series
     from matplotlib.colors import Colormap
@@ -135,6 +136,7 @@ class DiscreteSemantic(Semantic):
         scale: Scale,
     ) -> LookupMapping:
 
+        scale = scale.setup(data)
         levels = categorical_order(data, scale.order)
         values = self.values
 
@@ -230,6 +232,7 @@ class ContinuousSemantic(Semantic):
     ) -> NormedMapping | LookupMapping:
 
         values = self.values
+        scale = scale.setup(data)
         levels = categorical_order(data, scale.order)
         map_type = self._infer_map_type(scale, self.values, data)
 
@@ -255,33 +258,8 @@ class ContinuousSemantic(Semantic):
 
             return LookupMapping(mapping_dict)
 
-        if not isinstance(values, tuple):
-            # What to do here? In existing code we can pass numeric data but
-            # then request a categorical mapping by using a list or dict for values.
-            # That is currently not supported because the scale.type dominates in
-            # the variable type inference. We should basically not get here, either
-            # passing a list/dict implies a categorical mapping, or the an explicit
-            # numeric mapping with a categorical set of values should raise before this.
-            raise TypeError()  # TODO  FIXME
-
-        if map_type == "numeric":
-
-            data = pd.to_numeric(data.dropna())
-            prepare = None
-
-        elif map_type == "datetime":
-
-            # TODO delegate all this logic to the DateTime scale
-
-            if scale is not None:
-                data = scale.cast(data)
-            data = mpl.dates.date2num(data.dropna())
-
-            def prepare(x):
-                return mpl.dates.date2num(pd.to_datetime(x))
-
         transform = RangeTransform(values)
-        mapping = NormedMapping(scale.norm, transform, prepare)
+        mapping = NormedMapping(scale, transform)
 
         return mapping
 
@@ -316,9 +294,6 @@ class ColorSemantic(Semantic):
         mapping: LookupMapping | NormedMapping
         palette: PaletteSpec = self._palette
 
-        norm = None if scale is None else scale.norm
-        order = None if scale is None else scale.order
-
         # TODO We also need to add some input checks ...
         # e.g. specifying a numeric scale and a qualitative colormap should fail nicely.
 
@@ -331,36 +306,19 @@ class ColorSemantic(Semantic):
         # this is an error" from "user passed numeric values but did not set explicit
         # scale, then asked for a qualitative mapping by the form of the palette?
 
+        scale = scale.setup(data)
         map_type = self._infer_map_type(scale, palette, data)
 
         if map_type == "categorical":
-            return LookupMapping(self._setup_categorical(data, palette, order))
 
-        if map_type == "numeric":
+            return LookupMapping(self._setup_categorical(data, palette, scale.order))
 
-            data = pd.to_numeric(data)
-            prepare = None
-
-        elif map_type == "datetime":
-
-            if scale is not None:
-                data = scale.cast(data)
-            # TODO we need this to be a series because we'll do norm(data.dropna())
-            # we could avoid this by defining a little scale_norm() wrapper that
-            # removes nas more type-agnostically
-            data = pd.Series(mpl.dates.date2num(data), index=data.index)
-
-            def prepare(x):
-                return mpl.dates.date2num(pd.to_datetime(x))
-
-            # TODO if norm is tuple, convert to datetime and then to numbers?
-
-        lookup, norm, transform = self._setup_numeric(data, palette, norm)
+        lookup, transform = self._setup_numeric(data, palette)
         if lookup:
             # TODO See comments in _setup_numeric about deprecation of this
             mapping = LookupMapping(lookup)
         else:
-            mapping = NormedMapping(norm, transform, prepare)
+            mapping = NormedMapping(scale, transform)
 
         return mapping
 
@@ -397,8 +355,7 @@ class ColorSemantic(Semantic):
         self,
         data: Series,
         palette: PaletteSpec,
-        norm: Normalize | None,
-    ) -> tuple[dict[Any, tuple[float, float, float]], Normalize, Callable]:
+    ) -> tuple[dict[Any, tuple[float, float, float]], Callable[[Series], Any]]:
         """Determine colors when the variable is quantitative."""
         cmap: Colormap
         if isinstance(palette, dict):
@@ -427,20 +384,11 @@ class ColorSemantic(Semantic):
             else:
                 cmap = color_palette(palette, as_cmap=True)
 
-            # Now sort out the data normalization
-            if norm is None:
-                norm = mpl.colors.Normalize()
-            elif isinstance(norm, tuple):
-                norm = mpl.colors.Normalize(*norm)
-            elif not isinstance(norm, mpl.colors.Normalize):
-                err = "`norm` must be None, tuple, or Normalize object."
-                raise ValueError(err)
-            norm.autoscale_None(data.dropna())
             mapping = {}
 
         transform = RGBTransform(cmap)
 
-        return mapping, norm, transform
+        return mapping, transform
 
     def _infer_map_type(
         self,
@@ -691,21 +639,17 @@ class NormedMapping(SemanticMapping):
 
     def __init__(
         self,
-        norm: Normalize,
-        transform: Callable[[ArrayLike], Any],
-        prepare: Callable[[ArrayLike], ArrayLike] | None = None,
+        scale: Scale,
+        transform: Callable[[Series], Any],
     ):
 
-        self.norm = norm
+        self.scale = scale
         self.transform = transform
-        self.prepare = prepare
 
-    def __call__(self, x: Any) -> Any:
+    def __call__(self, x: Series | Number) -> Series | Number:
 
         if isinstance(x, pd.Series):
-            # Compatability for matplotlib<3.4.3
-            # https://github.com/matplotlib/matplotlib/pull/20511
-            x = np.asarray(x)
-        if self.prepare is not None:
-            x = self.prepare(x)
-        return self.transform(self.norm(x))
+            normed = self.scale.normalize(x)
+        else:
+            normed = self.scale.normalize(pd.Series(x)).item()
+        return self.transform(normed)
