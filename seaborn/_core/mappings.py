@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
-from matplotlib.colors import Normalize
 
 from seaborn._compat import MarkerStyle
 from seaborn._core.rules import VarType, variable_type, categorical_order
@@ -14,18 +13,27 @@ from seaborn.palettes import QUAL_PALETTES, color_palette
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Any, Callable, Tuple, Optional
+    from typing import Any, Callable, Tuple, List, Optional, Union
     from numbers import Number
     from numpy.typing import ArrayLike
     from pandas import Series
     from matplotlib.colors import Colormap
     from matplotlib.scale import Scale
+    from matplotlib.path import Path
     from seaborn._core.typing import PaletteSpec, DiscreteValueSpec, ContinuousValueSpec
 
     RGBTuple = Tuple[float, float, float]
 
     DashPattern = Tuple[float, ...]
     DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
+    MarkerPattern = Union[
+        float,
+        str,
+        Tuple[int, int, float],
+        List[Tuple[float, float]],
+        Path,
+        MarkerStyle,
+    ]
 
 
 class RangeTransform:
@@ -155,9 +163,6 @@ class BooleanSemantic(DiscreteSemantic):
         self, values: DiscreteValueSpec | Series
     ) -> DiscreteValueSpec | Series:
 
-        # TODO Require that values are in [1, 0, True, False]?
-        # (Equivalently, test for equality with 0/1)
-
         if isinstance(values, pd.Series):
             # What's best here? If we simply cast to bool, np.nan -> False, bad!
             # "boolean"/BooleanDType, is described as experimental/subject to change
@@ -185,19 +190,12 @@ class BooleanSemantic(DiscreteSemantic):
 
 class ContinuousSemantic(Semantic):
 
-    norm: Normalize
-    transform: RangeTransform
     _default_range: tuple[float, float] = (0, 1)
 
-    def __init__(
-        self,
-        values: ContinuousValueSpec = None,
-        variable: str = "",  # TODO default?
-    ):
+    def __init__(self, values: ContinuousValueSpec = None, variable: str = ""):
 
         if values is None:
             values = self.default_range
-        # TODO input checks
 
         self.values = values
         self.variable = variable
@@ -213,48 +211,44 @@ class ContinuousSemantic(Semantic):
         data: Series,
     ) -> VarType:
         """Determine how to implement the mapping."""
-        map_type: VarType
         if scale.type_declared:
             return scale.scale_type
         elif isinstance(values, (list, dict)):
             return VarType("categorical")
         else:
-            map_type = variable_type(data, boolean_type="categorical")
-        return map_type
+            return variable_type(data, boolean_type="categorical")
 
-    def setup(
-        self,
-        data: Series,
-        scale: Scale,
-    ) -> NormedMapping | LookupMapping:
+    def setup(self, data: Series, scale: Scale) -> SemanticMapping:
 
         scale = scale.setup(data)
-        levels = categorical_order(data, scale.order)
-        values = self.values
         map_type = self._infer_map_type(scale, self.values, data)
-
-        mapping: NormedMapping | LookupMapping
 
         if map_type == "categorical":
 
-            if isinstance(values, tuple):
+            levels = categorical_order(data, scale.order)
+            if isinstance(self.values, tuple):
                 numbers = np.linspace(1, 0, len(levels))
-                transform = RangeTransform(values)
+                transform = RangeTransform(self.values)
                 mapping_dict = dict(zip(levels, transform(numbers)))
-            elif isinstance(values, dict):
-                self._check_dict_not_missing_levels(levels, values)
-                mapping_dict = values
-            elif isinstance(values, list):
-                values = self._ensure_list_not_too_short(levels, values)
+            elif isinstance(self.values, dict):
+                self._check_dict_not_missing_levels(levels, self.values)
+                mapping_dict = self.values
+            elif isinstance(self.values, list):
+                values = self._ensure_list_not_too_short(levels, self.values)
                 # TODO check list not too long as well?
                 mapping_dict = dict(zip(levels, values))
 
             return LookupMapping(mapping_dict)
 
-        transform = RangeTransform(values)  # type: ignore  # TODO
-        mapping = NormedMapping(scale, transform)
-
-        return mapping
+        if not isinstance(self.values, tuple):
+            # We shouldn't actually get here through the Plot interface (there is a
+            # guard upstream), but this check prevents mypy from complaining.
+            t = type(self.values).__name__
+            raise TypeError(
+                f"Using continuous {self.variable} mapping, but values provided as {t}."
+            )
+        transform = RangeTransform(self.values)
+        return NormedMapping(scale, transform)
 
 
 # ==================================================================================== #
@@ -369,7 +363,7 @@ class ColorSemantic(Semantic):
             # --- Sort out the colormap to use from the palette argument
 
             # Default numeric palette is our default cubehelix palette
-            # TODO do we want to do something complicated to ensure contrast?
+            # This is something we may revisit and change; it has drawbacks
             palette = "ch:" if palette is None else palette
 
             if isinstance(palette, mpl.colors.Colormap):
@@ -404,14 +398,12 @@ class ColorSemantic(Semantic):
 
 class MarkerSemantic(DiscreteSemantic):
 
-    # TODO full types
     def __init__(self, shapes: DiscreteValueSpec = None, variable: str = "marker"):
 
         self.values = self._standardize_values(shapes)
         self.variable = variable
 
-    def _standardize_value(self, value: str | tuple | MarkerStyle) -> MarkerStyle:
-        # TODO more clear error handling?
+    def _standardize_value(self, value: MarkerPattern) -> MarkerStyle:
         return MarkerStyle(value)
 
     def _default_values(self, n: int) -> list[MarkerStyle]:
@@ -454,10 +446,9 @@ class MarkerSemantic(DiscreteSemantic):
             ])
             s += 1
 
-        markers = [MarkerStyle(m) for m in markers]
+        markers = [MarkerStyle(m) for m in markers[:n]]
 
-        # TODO or have this as an infinite generator?
-        return markers[:n]
+        return markers
 
 
 class LineStyleSemantic(DiscreteSemantic):
