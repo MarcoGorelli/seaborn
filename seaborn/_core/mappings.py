@@ -14,18 +14,15 @@ from seaborn.palettes import QUAL_PALETTES, color_palette
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Any, Callable, List, Tuple, Dict, Optional, Union
+    from typing import Any, Callable, Tuple, Optional
     from numbers import Number
     from numpy.typing import ArrayLike
     from pandas import Series
     from matplotlib.colors import Colormap
     from matplotlib.scale import Scale
-    from seaborn._core.typing import PaletteSpec
+    from seaborn._core.typing import PaletteSpec, DiscreteValueSpec, ContinuousValueSpec
 
-    DiscreteValueSpec = Optional[Union[dict, list]]
-    ContinuousValueSpec = Optional[
-        Union[Tuple[float, float], List[float], Dict[Any, float]]
-    ]
+    RGBTuple = Tuple[float, float, float]
 
     DashPattern = Tuple[float, ...]
     DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
@@ -267,7 +264,7 @@ class ColorSemantic(Semantic):
 
     def __init__(self, palette: PaletteSpec = None, variable: str = "color"):
 
-        self._palette = palette
+        self.palette = palette
         self.variable = variable
 
     def _standardize_values(
@@ -288,7 +285,7 @@ class ColorSemantic(Semantic):
     ) -> LookupMapping | NormedMapping:
         """Infer the type of mapping to use and define it using this vector of data."""
         mapping: LookupMapping | NormedMapping
-        palette: PaletteSpec = self._palette
+        palette: PaletteSpec = self.palette
 
         # TODO We also need to add some input checks ...
         # e.g. specifying a numeric scale and a qualitative colormap should fail nicely.

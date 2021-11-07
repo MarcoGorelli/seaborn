@@ -49,6 +49,8 @@ if TYPE_CHECKING:
         VariableSpec,
         OrderSpec,
         NormSpec,
+        DiscreteValueSpec,
+        ContinuousValueSpec,
     )
 
 
@@ -319,7 +321,7 @@ class Plot:
 
     def map_fill(
         self,
-        values: list | dict | None = None,
+        values: DiscreteValueSpec = None,
         order: OrderSpec = None,
     ) -> Plot:
 
@@ -329,7 +331,7 @@ class Plot:
 
     def map_marker(
         self,
-        shapes: list | dict | None = None,
+        shapes: DiscreteValueSpec = None,
         order: OrderSpec = None,
     ) -> Plot:
 
@@ -339,7 +341,7 @@ class Plot:
 
     def map_linestyle(
         self,
-        styles: list | dict | None = None,
+        styles: DiscreteValueSpec = None,
         order: OrderSpec = None,
     ) -> Plot:
 
@@ -349,7 +351,7 @@ class Plot:
 
     def map_linewidth(
         self,
-        values: tuple[float, float] | list[float] | dict[Any, float] | None = None,
+        values: ContinuousValueSpec = None,
         order: OrderSpec | None = None,
         norm: Normalize | None = None,
         # TODO clip?
