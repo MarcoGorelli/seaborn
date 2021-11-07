@@ -60,7 +60,7 @@ SEMANTICS = {  # TODO should this be pluggable?
     "edgecolor": ColorSemantic(variable="edgecolor"),
     "marker": MarkerSemantic(),
     "linestyle": LineStyleSemantic(),
-    "fill": BooleanSemantic(variable="fill"),
+    "fill": BooleanSemantic(values=None, variable="fill"),
     "linewidth": LineWidthSemantic(),
 }
 

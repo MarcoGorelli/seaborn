@@ -543,14 +543,14 @@ class TestBoolean:
 
         x = pd.Series(["a", "b"])
         scale = get_default_scale(x)
-        m = BooleanSemantic().setup(x, scale)
+        m = BooleanSemantic(values=None, variable="").setup(x, scale)
         assert m("a") is True
         assert m("b") is False
 
     def test_default_warns(self):
 
         x = pd.Series(["a", "b", "c"])
-        s = BooleanSemantic(variable="fill")
+        s = BooleanSemantic(values=None, variable="fill")
         msg = "There are only two possible fill values, so they will cycle"
         scale = get_default_scale(x)
         with pytest.warns(UserWarning, match=msg):
@@ -564,7 +564,7 @@ class TestBoolean:
         x = pd.Series(["a", "b", "c"])
         values = [True, True, False]
         scale = get_default_scale(x)
-        m = BooleanSemantic(values).setup(x, scale)
+        m = BooleanSemantic(values, variable="").setup(x, scale)
         for k, v in zip(x, values):
             assert m(k) is v
 

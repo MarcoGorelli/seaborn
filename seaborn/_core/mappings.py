@@ -1,3 +1,33 @@
+"""
+Classes that, together with the scales module, implement semantic mapping logic.
+
+Semantic mappings in seaborn transform data values into visual properties.
+The implementations in this module output values that are suitable arguments for
+matplotlib artists or plotting functions.
+
+There are two main class hierarchies here: Semantic classes and SemanticMapping
+classes. One way to think of the relationship is that a Semantic is a partial
+initialization of a SemanticMapping. Semantics hold the parameters specified by
+the user through the Plot interface and contain methods relevant to defining
+default values for specific visual parameters (e.g. generating arbitrarily-large
+sets of distinct marker shapes) or standardizing user-provided values. The
+user-specified (or default) parameters are then used in combination with the
+data values to setup the SemanticMapping objects that are used to actually
+create the plot. SemanticMappings are more general, and they operate using just
+a few different patterns.
+
+Unlike the original articulation of the grammar of graphics, or other
+implementations, seaborn makes some distinctions between the concepts of
+"scaling" and "mapping", both in the internal code and in the external
+interfaces. Semantic mapping uses scales when there are numeric or ordinal
+relationships between inputs, but the scale abstraction is not used for
+transforming inputs into discrete output values. This is partly for historical
+reasons (some concepts were introduced in ways that are difficult to re-express
+only using scales), and also because it feels more natural to use a dictionary
+lookup as the core operation for mapping discrete properties, such as marker shape
+or dash pattern.
+
+"""
 from __future__ import annotations
 import itertools
 import warnings
@@ -36,49 +66,22 @@ if TYPE_CHECKING:
     ]
 
 
-class RangeTransform:
-
-    def __init__(self, out_range: tuple[float, float]):
-        self.out_range = out_range
-
-    def __call__(self, x: ArrayLike) -> ArrayLike:
-        lo, hi = self.out_range
-        return lo + x * (hi - lo)
-
-
-class RGBTransform:
-
-    def __init__(self, cmap: Colormap):
-        self.cmap = cmap
-
-    def __call__(self, x: ArrayLike) -> ArrayLike:
-        rgba = mpl.colors.to_rgba_array(self.cmap(x))
-        return rgba[..., :3].squeeze()
-
-
-# ==================================================================================== #
-
-
 class Semantic:
-
+    """Holds semantic mapping parameters and creates mapping based on data."""
     variable: str
 
-    def setup(
-        self,
-        data: Series,
-        scale: Scale,
-    ) -> SemanticMapping:
-
-        raise NotImplementedError()
+    def setup(self, data: Series, scale: Scale) -> SemanticMapping:
+        """Define the semantic mapping using data values."""
+        raise NotImplementedError
 
     def _standardize_value(self, value: Any) -> Any:
-
+        """Convert value to a standardize representation."""
         return value
 
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
     ) -> DiscreteValueSpec | Series:
-
+        """Convert collection of values to standardized representations."""
         if values is None:
             return None
         elif isinstance(values, dict):
@@ -89,7 +92,7 @@ class Semantic:
             return [self._standardize_value(x) for x in values]
 
     def _check_dict_not_missing_levels(self, levels: list, values: dict) -> None:
-
+        """Input check when values are provided as a dictionary."""
         missing = set(levels) - set(values)
         if missing:
             formatted = ", ".join(map(repr, sorted(missing, key=str)))
@@ -97,7 +100,7 @@ class Semantic:
             raise ValueError(err)
 
     def _ensure_list_not_too_short(self, levels: list, values: list) -> list:
-
+        """Input check when values are provided as a list."""
         if len(levels) > len(values):
             msg = " ".join([
                 f"The {self.variable} list has fewer values ({len(values)})",
@@ -112,18 +115,15 @@ class Semantic:
 
 
 class DiscreteSemantic(Semantic):
-
-    _values: DiscreteValueSpec
-
-    def __init__(self, values: DiscreteValueSpec = None, variable: str = "value"):
-
+    """Define semantic mapping where output values have no numeric relationship."""
+    def __init__(self, values: DiscreteValueSpec, variable: str):
         self.values = self._standardize_values(values)
         self.variable = variable
 
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
     ) -> DiscreteValueSpec | Series:
-
+        """Convert collection of values to standardized representations."""
         if values is None:
             return values
         elif isinstance(values, pd.Series):
@@ -132,37 +132,32 @@ class DiscreteSemantic(Semantic):
             return super()._standardize_values(values)
 
     def _default_values(self, n: int) -> list:
-        """Return n unique values."""
+        """Return n unique values. Must be defined by subclass if used."""
         raise NotImplementedError
 
-    def setup(
-        self,
-        data: Series,
-        scale: Scale,
-    ) -> LookupMapping:
-
+    def setup(self, data: Series, scale: Scale) -> LookupMapping:
+        """Define the mapping using data values."""
         scale = scale.setup(data)
         levels = categorical_order(data, scale.order)
-        values = self.values
 
-        if values is None:
+        if self.values is None:
             mapping = dict(zip(levels, self._default_values(len(levels))))
-        elif isinstance(values, dict):
-            self._check_dict_not_missing_levels(levels, values)
-            mapping = values
-        elif isinstance(values, list):
-            values = self._ensure_list_not_too_short(levels, values)
+        elif isinstance(self.values, dict):
+            self._check_dict_not_missing_levels(levels, self.values)
+            mapping = self.values
+        elif isinstance(self.values, list):
+            values = self._ensure_list_not_too_short(levels, self.values)
             mapping = dict(zip(levels, values))
 
         return LookupMapping(mapping)
 
 
 class BooleanSemantic(DiscreteSemantic):
-
+    """Semantic mapping where only possible output values are True or False."""
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
     ) -> DiscreteValueSpec | Series:
-
+        """Convert values into booleans using Python's truthy rules."""
         if isinstance(values, pd.Series):
             # What's best here? If we simply cast to bool, np.nan -> False, bad!
             # "boolean"/BooleanDType, is described as experimental/subject to change
@@ -179,6 +174,7 @@ class BooleanSemantic(DiscreteSemantic):
             raise TypeError(f"Type of `values` ({type(values)}) not understood.")
 
     def _default_values(self, n: int) -> list:
+        """Return a list of n values, alternating True and False."""
         if n > 2:
             msg = " ".join([
                 f"There are only two possible {self.variable} values,",
@@ -189,19 +185,18 @@ class BooleanSemantic(DiscreteSemantic):
 
 
 class ContinuousSemantic(Semantic):
-
+    """Semantic mapping where output values have numeric relationships."""
     _default_range: tuple[float, float] = (0, 1)
 
     def __init__(self, values: ContinuousValueSpec = None, variable: str = ""):
-
         if values is None:
             values = self.default_range
-
         self.values = values
         self.variable = variable
 
     @property
     def default_range(self) -> tuple[float, float]:
+        """Default output range; implemented as a property so rcParams can be used."""
         return self._default_range
 
     def _infer_map_type(
@@ -210,7 +205,7 @@ class ContinuousSemantic(Semantic):
         values: ContinuousValueSpec,
         data: Series,
     ) -> VarType:
-        """Determine how to implement the mapping."""
+        """Determine how to implement the mapping based on parameters or data."""
         if scale.type_declared:
             return scale.scale_type
         elif isinstance(values, (list, dict)):
@@ -219,7 +214,7 @@ class ContinuousSemantic(Semantic):
             return variable_type(data, boolean_type="categorical")
 
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
-
+        """Define the mapping using data values."""
         scale = scale.setup(data)
         map_type = self._infer_map_type(scale, self.values, data)
 
@@ -255,16 +250,15 @@ class ContinuousSemantic(Semantic):
 
 
 class ColorSemantic(Semantic):
-
+    """Semantic mapping that produces RGB colors."""
     def __init__(self, palette: PaletteSpec = None, variable: str = "color"):
-
         self.palette = palette
         self.variable = variable
 
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
     ) -> ArrayLike | dict[Any, tuple[float, ...]] | None:
-
+        """Standardize colors as an RGB tuple or n x 3 RGB array."""
         if values is None:
             return None
         elif isinstance(values, (pd.Series, list)):
@@ -272,15 +266,8 @@ class ColorSemantic(Semantic):
         else:
             return {k: mpl.colors.to_rgb(v) for k, v in values.items()}
 
-    def setup(
-        self,
-        data: Series,
-        scale: Scale,
-    ) -> LookupMapping | NormedMapping:
-        """Infer the type of mapping to use and define it using this vector of data."""
-        mapping: LookupMapping | NormedMapping
-        palette: PaletteSpec = self.palette
-
+    def setup(self, data: Series, scale: Scale) -> SemanticMapping:
+        """Define the mapping using data values."""
         # TODO We also need to add some input checks ...
         # e.g. specifying a numeric scale and a qualitative colormap should fail nicely.
 
@@ -294,20 +281,20 @@ class ColorSemantic(Semantic):
         # scale, then asked for a qualitative mapping by the form of the palette?
 
         scale = scale.setup(data)
-        map_type = self._infer_map_type(scale, palette, data)
+        map_type = self._infer_map_type(scale, self.palette, data)
 
         if map_type == "categorical":
 
-            return LookupMapping(self._setup_categorical(data, palette, scale.order))
+            return LookupMapping(
+                self._setup_categorical(data, self.palette, scale.order)
+            )
 
-        lookup, transform = self._setup_numeric(data, palette)
+        lookup, transform = self._setup_numeric(data, self.palette)
         if lookup:
             # TODO See comments in _setup_numeric about deprecation of this
-            mapping = LookupMapping(lookup)
+            return LookupMapping(lookup)
         else:
-            mapping = NormedMapping(scale, transform)
-
-        return mapping
+            return NormedMapping(scale, transform)
 
     def _setup_categorical(
         self,
@@ -383,7 +370,7 @@ class ColorSemantic(Semantic):
         palette: PaletteSpec,
         data: Series,
     ) -> VarType:
-        """Determine how to implement a color mapping."""
+        """Infer type of color mapping based on relevant parameters."""
         map_type: VarType
         if scale is not None and scale.type_declared:
             return scale.scale_type
@@ -397,13 +384,14 @@ class ColorSemantic(Semantic):
 
 
 class MarkerSemantic(DiscreteSemantic):
-
+    """Mapping that produces values for matplotlib's marker parameter."""
     def __init__(self, shapes: DiscreteValueSpec = None, variable: str = "marker"):
 
         self.values = self._standardize_values(shapes)
         self.variable = variable
 
     def _standardize_value(self, value: MarkerPattern) -> MarkerStyle:
+        """Standardize values as MarkerStyle objects."""
         return MarkerStyle(value)
 
     def _default_values(self, n: int) -> list[MarkerStyle]:
@@ -452,7 +440,7 @@ class MarkerSemantic(DiscreteSemantic):
 
 
 class LineStyleSemantic(DiscreteSemantic):
-
+    """Mapping that produces values for matplotlib's linestyle parameter."""
     def __init__(
         self,
         styles: list | dict | None = None,
@@ -463,7 +451,7 @@ class LineStyleSemantic(DiscreteSemantic):
         self.variable = variable
 
     def _standardize_value(self, value: str | DashPattern) -> DashPatternWithOffset:
-
+        """Standardize values as dash pattern (with offset)."""
         return self._get_dash_pattern(value)
 
     def _default_values(self, n: int) -> list[DashPatternWithOffset]:
@@ -518,7 +506,7 @@ class LineStyleSemantic(DiscreteSemantic):
 
     @staticmethod
     def _get_dash_pattern(style: str | DashPattern) -> DashPatternWithOffset:
-        """Convert linestyle to dash pattern."""
+        """Convert linestyle arguments to dash pattern with offset."""
         # Copied and modified from Matplotlib 3.4
         # go from short hand -> full strings
         ls_mapper = {'-': 'solid', '--': 'dashed', '-.': 'dashdot', ':': 'dotted'}
@@ -589,12 +577,15 @@ class EdgeWidthSemantic(ContinuousSemantic):
 
 # ==================================================================================== #
 
+
 class SemanticMapping:
-    pass
+    """Stateful and callable object that maps data values to matplotlib arguments."""
+    def __call__(self, x: Any) -> Any:
+        raise NotImplementedError
 
 
 class IdentityMapping(SemanticMapping):
-
+    """Return input value, possibly after converting to standardized representation."""
     def __init__(self, func: Callable[[Any], Any]):
         self._standardization_func = func
 
@@ -603,13 +594,11 @@ class IdentityMapping(SemanticMapping):
 
 
 class LookupMapping(SemanticMapping):
-
+    """Discrete mapping defined by dictionary lookup."""
     def __init__(self, mapping: dict):
-
         self.mapping = mapping
 
-    def __call__(self, x: Any) -> Any:  # Possible to type output based on lookup_table?
-
+    def __call__(self, x: Any) -> Any:
         if isinstance(x, pd.Series):
             if x.dtype.name == "category":
                 # https://github.com/pandas-dev/pandas/issues/41669
@@ -620,12 +609,8 @@ class LookupMapping(SemanticMapping):
 
 
 class NormedMapping(SemanticMapping):
-
-    def __init__(
-        self,
-        scale: Scale,
-        transform: Callable[[Series], Any],
-    ):
+    """Continuous mapping defined by domain normalization and range transform."""
+    def __init__(self, scale: Scale, transform: Callable[[Series], Any]):
 
         self.scale = scale
         self.transform = transform
@@ -637,3 +622,23 @@ class NormedMapping(SemanticMapping):
         else:
             normed = self.scale.normalize(pd.Series(x)).item()
         return self.transform(normed)
+
+
+class RangeTransform:
+    """Transform normed data values into float array after linear range scaling."""
+    def __init__(self, out_range: tuple[float, float]):
+        self.out_range = out_range
+
+    def __call__(self, x: ArrayLike) -> ArrayLike:
+        lo, hi = self.out_range
+        return lo + x * (hi - lo)
+
+
+class RGBTransform:
+    """Transform data values into n x 3 rgb array using colormap."""
+    def __init__(self, cmap: Colormap):
+        self.cmap = cmap
+
+    def __call__(self, x: ArrayLike) -> ArrayLike:
+        rgba = mpl.colors.to_rgba_array(self.cmap(x))
+        return rgba[..., :3].squeeze()
