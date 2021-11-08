@@ -226,7 +226,7 @@ class DateTimeScale(Scale):
         # solves a *lot* of problems with pd.to_datetime. Let's leave this as TODO.
 
         if isinstance(norm, tuple):
-            norm = tuple(mpl.dates.date2num(pd.to_datetime(norm)))
+            norm = tuple(mpl.dates.date2num(self.cast(pd.Series(norm)).to_numpy()))
 
         # TODO should expose other kwargs for pd.to_datetime and pass through in cast()
 
