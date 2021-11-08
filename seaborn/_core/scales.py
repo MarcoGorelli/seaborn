@@ -218,9 +218,15 @@ class DateTimeScale(Scale):
         norm: Normalize | tuple[Any, Any] | None = None
     ):
 
+        # A potential issue with this class is that we are using pd.to_datetime as the
+        # canonical way of casting to date objects, but pandas uses ns resolution.
+        # Matplotlib uses day resolution for dates. Thus there are cases where we could
+        # fail to plot dates that matplotlib can handle.
+        # Another option would be to use numpy datetime64 functionality, but pandas
+        # solves a *lot* of problems with pd.to_datetime. Let's leave this as TODO.
+
         if isinstance(norm, tuple):
-            # TODO handle case where norm values are numbers?
-            norm = tuple(mpl.dates.date2num(norm))
+            norm = tuple(mpl.dates.date2num(pd.to_datetime(norm)))
 
         # TODO should expose other kwargs for pd.to_datetime and pass through in cast()
 
