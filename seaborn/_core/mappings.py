@@ -601,10 +601,7 @@ class LookupMapping(SemanticMapping):
 
     def __call__(self, x: Any) -> Any:
         if isinstance(x, pd.Series):
-            if x.dtype.name == "category":
-                # https://github.com/pandas-dev/pandas/issues/41669
-                x = x.astype(object)
-            return x.map(self.mapping)
+            return [self.mapping.get(x_i) for x_i in x]
         else:
             return self.mapping[x]
 
