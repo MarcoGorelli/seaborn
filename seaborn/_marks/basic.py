@@ -1,26 +1,31 @@
 from __future__ import annotations
 import numpy as np
+from matplotlib.colors import to_rgba
 from seaborn._compat import MarkerStyle
-from seaborn._marks.base import Mark
+from seaborn._marks.base import Mark, Feature
 
 
 class Point(Mark):  # TODO types
 
     supports = ["color"]
 
-    def __init__(self, marker="o", fill=True, jitter=None, **kwargs):
+    def __init__(
+        self,
+        color=Feature("C0"),
+        edgecolor=Feature("w"),
+        marker=Feature(rc="scatter.marker"),
+        pointsize=Feature(4),
+        linewidth=Feature(1),  # TODO how to scale with point size?
+        edgewidth=Feature(.5),  # TODO how to scale with point size?
+        fill=Feature(True),
+        jitter=None,
+        **kwargs,  # TODO needed?
+    ):
 
-        # TODO need general policy on mappable defaults
-        # I think a good idea would be to use some kind of singleton, so it's
-        # clear what mappable attributes can be directly set, but so that
-        # we can also read from rcParams at plot time.
-        # Will need to decide which of mapping / fixing supercedes if both set,
-        # or if that should raise an error.
-        kwargs.update(
-            marker=marker,
-            fill=fill,
-        )
         super().__init__(**kwargs)
+
+        self.features = {k: v for k, v in locals().items() if isinstance(v, Feature)}
+
         self.jitter = jitter  # TODO decide on form of jitter and add type hinting
 
     def _adjust(self, df, mappings, orient):
@@ -60,21 +65,27 @@ class Point(Mark):  # TODO types
 
         kws = kws.copy()
 
-        # TODO need better solution here
-        default_marker = kws.pop("marker")
-        default_fill = kws.pop("fill")
+        color = self._resolve("color", mappings, data, to_rgba)
+        edgecolor = self._resolve("edgecolor", mappings, data, to_rgba)
+        marker = self._resolve("marker", mappings, data, MarkerStyle)
+        fill = self._resolve("fill", mappings, data, bool)
+
+        # TODO matplotlib has "edgecolor='face'" and it would be good to keep that
+        # But it would be BETTER to have succient way of specifiying, e.g.
+        # edgecolor = set_hls_values(facecolor, l=.8)
+
+        # TODO lots of questions about the best way to implement fill
+        # e.g. we need to remap color to edgecolor where edge is false
+        fill &= np.array([m.is_filled() for m in marker])
+        edgecolor[~fill] = color[~fill]
+        color[~fill] = 0
 
         points = ax.scatter(x=data["x"], y=data["y"], **kws)
+        points.set_facecolors(color)
+        points.set_edgecolors(edgecolor)
 
-        if "color" in data:
-            points.set_facecolors(mappings["color"](data["color"]))
-
-        if "edgecolor" in data:
-            points.set_edgecolors(mappings["edgecolor"](data["edgecolor"]))
-
-        # TODO facecolor?
-
-        n = data.shape[0]
+        paths = [m.get_path().transformed(m.get_transform()) for m in marker]
+        points.set_paths(paths)
 
         # TODO this doesn't work. Apparently scatter is reading
         # the marker.is_filled attribute and directing colors towards
@@ -90,24 +101,6 @@ class Point(Mark):  # TODO types
         # We may want to think about how to work with MarkerStyle objects
         # in the absence of a `fill` semantic so that we can relax the
         # constraint on mixing filled and unfilled markers...
-
-        if "marker" in data:
-            markers = mappings["marker"](data["marker"])
-        else:
-            m = MarkerStyle(default_marker)
-            markers = (m for _ in range(n))
-
-        if "fill" in data:
-            fills = mappings["fill"](data["fill"])
-        else:
-            fills = (default_fill for _ in range(n))
-
-        paths = []
-        for marker, filled in zip(markers, fills):
-            fillstyle = "full" if filled else "none"
-            m = MarkerStyle(marker, fillstyle)
-            paths.append(m.get_path().transformed(m.get_transform()))
-        points.set_paths(paths)
 
 
 class Line(Mark):

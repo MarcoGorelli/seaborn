@@ -1,15 +1,35 @@
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
+import matplotlib as mpl
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Literal, Any, Type, Dict
-    from collections.abc import Callable, Generator
+    from typing import Literal, Any, Type, Dict, Callable
+    from collections.abc import Generator
     from pandas import DataFrame
     from matplotlib.axes import Axes
     from seaborn._core.mappings import SemanticMapping
     from seaborn._stats.base import Stat
 
     MappingDict = Dict[str, SemanticMapping]
+
+
+class Feature:
+    """Class supporting visual features set directly, via mapping, or from rcParams."""
+    def __init__(self, val: Any = None, rc: str | None = None):
+        self.val = val
+        self.rc = rc
+
+    @property
+    def default(self) -> Any:
+        if self.val is not None:
+            return self.val
+        return mpl.rcParams.get(self.rc)
+
+    # TODO make immutable, this gets cached in docstrings
+    # TODO nice str/repr for docstring
 
 
 class Mark:
@@ -19,10 +39,35 @@ class Mark:
     grouping_vars: list[str] = []
     requires: list[str]  # List of variabes that must be defined
     supports: list[str]  # List of variables that will be used
+    features: dict[str, Any]
 
     def __init__(self, **kwargs: Any):
 
         self._kwargs = kwargs
+
+    def _resolve(
+        self,
+        name: str,
+        mappings: dict,
+        data: DataFrame | dict,
+        f: Callable = lambda x: x,
+    ) -> Any:
+
+        feature = self.features[name]
+        if isinstance(feature, Feature):
+
+            if name in data:
+                return mappings[name](data[name])
+
+            default = f(feature.default)
+            if isinstance(data, pd.DataFrame):
+                default = np.array([default] * len(data))
+            return default
+
+        feature = f(feature)
+        if isinstance(data, pd.DataFrame):
+            feature = np.array([feature] * len(data))
+        return feature
 
     def _adjust(
         self,
