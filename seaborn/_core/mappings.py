@@ -264,7 +264,7 @@ class ColorSemantic(Semantic):
         elif isinstance(values, (pd.Series, list)):
             return mpl.colors.to_rgba_array(values)[:, :3]
         else:
-            return {k: mpl.colors.to_rgb(v) for k, v in values.items()}
+            return {k: mpl.colors.to_rgba(v) for k, v in values.items()}
 
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
         """Define the mapping using data values."""
@@ -301,7 +301,7 @@ class ColorSemantic(Semantic):
         data: Series,
         palette: PaletteSpec,
         order: list | None,
-    ) -> dict[Any, tuple[float, float, float]]:
+    ) -> dict[Any, tuple[float, float, float, float]]:
         """Determine colors when the mapping is categorical."""
         levels = categorical_order(data, order)
         n_colors = len(levels)
@@ -323,13 +323,14 @@ class ColorSemantic(Semantic):
                 colors = color_palette(palette, n_colors)
             mapping = dict(zip(levels, colors))
 
+        mapping = {k: mpl.colors.to_rgba(v) for k, v in mapping.items()}
         return mapping
 
     def _setup_numeric(
         self,
         data: Series,
         palette: PaletteSpec,
-    ) -> tuple[dict[Any, tuple[float, float, float]], Callable[[Series], Any]]:
+    ) -> tuple[dict[Any, tuple[float, float, float, float]], Callable[[Series], Any]]:
         """Determine colors when the variable is quantitative."""
         cmap: Colormap
         if isinstance(palette, dict):
@@ -641,4 +642,4 @@ class RGBTransform:
 
     def __call__(self, x: ArrayLike) -> ArrayLike:
         rgba = mpl.colors.to_rgba_array(self.cmap(x))
-        return rgba[..., :3].squeeze()
+        return rgba.squeeze()

@@ -2,11 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 from matplotlib.scale import LinearScale
-from matplotlib.colors import Normalize, same_color
+from matplotlib.colors import Normalize, same_color, to_rgba_array, to_rgba
 
 import pytest
 from numpy.testing import assert_array_equal
-from pandas.testing import assert_series_equal
 
 from seaborn._compat import MarkerStyle
 from seaborn._core.rules import categorical_order
@@ -117,7 +116,7 @@ class TestColor:
         palette = dict(zip(cat_order, color_palette("Greens")))
         scale = get_default_scale(cat_vector)
         m = ColorSemantic(palette=palette).setup(cat_vector, scale)
-        assert m.mapping == palette
+        assert m.mapping == {k: to_rgba(v) for k, v in palette.items()}
 
         for level, color in palette.items():
             assert same_color(m(level), color)
@@ -127,7 +126,7 @@ class TestColor:
         palette = dict(zip(num_order, color_palette("Greens")))
         scale = get_default_scale(num_vector)
         m = ColorSemantic(palette=palette).setup(num_vector, scale)
-        assert m.mapping == palette
+        assert m.mapping == {k: to_rgba(v) for k, v in palette.items()}
 
         for level, color in palette.items():
             assert same_color(m(level), color)
@@ -267,7 +266,7 @@ class TestColor:
         colors = color_palette(n_colors=len(x))
         scale = get_default_scale(x)
         m = ColorSemantic().setup(x, scale)
-        assert_series_equal(m(x), pd.Series(colors))
+        assert_array_equal(m(x), to_rgba_array(colors))
 
     def test_categorical_multi_lookup_categorical(self):
 
@@ -275,7 +274,7 @@ class TestColor:
         colors = color_palette(n_colors=len(x))
         scale = get_default_scale(x)
         m = ColorSemantic().setup(x, scale)
-        assert_series_equal(m(x), pd.Series(colors))
+        assert_array_equal(m(x), to_rgba_array(colors))
 
     def test_numeric_default_palette(self, num_vector, num_order, num_scale):
 
@@ -334,7 +333,7 @@ class TestColor:
         cmap = color_palette("mako", as_cmap=True)
         m = ColorSemantic(palette=cmap).setup(num_vector, num_scale)
         norm = num_scale.setup(num_vector).norm
-        expected_colors = cmap(norm(num_vector.to_numpy()))[:, :3]
+        expected_colors = cmap(norm(num_vector.to_numpy()))
         assert_array_equal(m(num_vector), expected_colors)
 
     def test_datetime_default_palette(self, dt_num_vector):
