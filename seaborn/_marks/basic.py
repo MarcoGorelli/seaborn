@@ -1,6 +1,8 @@
 from __future__ import annotations
 import numpy as np
+import matplotlib as mpl
 from matplotlib.colors import to_rgba
+
 from seaborn._compat import MarkerStyle
 from seaborn._marks.base import Mark, Feature
 
@@ -13,10 +15,11 @@ class Point(Mark):  # TODO types
         self,
         color=Feature("C0"),
         edgecolor=Feature("w"),
+        alpha=Feature(1),  # TODO auto alpha?
         marker=Feature(rc="scatter.marker"),
-        pointsize=Feature(4),
+        pointsize=Feature(5),
         linewidth=Feature(1),  # TODO how to scale with point size?
-        edgewidth=Feature(.5),  # TODO how to scale with point size?
+        edgewidth=Feature(.25),  # TODO how to scale with point size?
         fill=Feature(True),
         jitter=None,
         **kwargs,  # TODO needed?
@@ -24,11 +27,21 @@ class Point(Mark):  # TODO types
 
         super().__init__(**kwargs)
 
-        self.features = {k: v for k, v in locals().items() if isinstance(v, Feature)}
+        # TODO do this automatically using self.supports?
+        self.features = dict(
+            color=color,
+            edgecolor=edgecolor,
+            alpha=alpha,
+            marker=marker,
+            pointsize=pointsize,
+            linewidth=linewidth,
+            edgewidth=edgewidth,
+            fill=fill,
+        )
 
         self.jitter = jitter  # TODO decide on form of jitter and add type hinting
 
-    def _adjust(self, df, mappings, orient):
+    def _adjust(self, df, orient):
 
         if self.jitter is None:
             return df
@@ -65,42 +78,39 @@ class Point(Mark):  # TODO types
 
         kws = kws.copy()
 
-        color = self._resolve("color", mappings, data, to_rgba)
-        edgecolor = self._resolve("edgecolor", mappings, data, to_rgba)
-        marker = self._resolve("marker", mappings, data, MarkerStyle)
-        fill = self._resolve("fill", mappings, data, bool)
+        color = self._resolve("color", data, to_rgba)
+        edgecolor = self._resolve("edgecolor", data, to_rgba)
+        alpha = self._resolve("alpha", data, float)
+
+        marker = self._resolve("marker", data, MarkerStyle)
+        fill = self._resolve("fill", data, bool)
+        pointsize = self._resolve("pointsize", data, float)
 
         # TODO matplotlib has "edgecolor='face'" and it would be good to keep that
         # But it would be BETTER to have succient way of specifiying, e.g.
         # edgecolor = set_hls_values(facecolor, l=.8)
 
         # TODO lots of questions about the best way to implement fill
-        # e.g. we need to remap color to edgecolor where edge is false
+        # e.g. we need to remap color to edgecolor where fill is false
+        color[:, 3] = alpha
+
         fill &= np.array([m.is_filled() for m in marker])
         edgecolor[~fill] = color[~fill]
-        color[~fill] = 0
-
-        points = ax.scatter(x=data["x"], y=data["y"], **kws)
-        points.set_facecolors(color)
-        points.set_edgecolors(edgecolor)
+        color[~fill, 3] = 0
 
         paths = [m.get_path().transformed(m.get_transform()) for m in marker]
-        points.set_paths(paths)
 
-        # TODO this doesn't work. Apparently scatter is reading
-        # the marker.is_filled attribute and directing colors towards
-        # the edge/face and then setting the face to uncolored as needed.
-        # We are getting to the point where just creating the PathCollection
-        # ourselves is probably easier, but not breaking existing scatterplot
-        # calls that leverage ax.scatter features like cmap might be tricky.
-        # Another option could be to have some internal-only Marks that support
-        # the existing functional interface where doing so through the new
-        # interface would be overly cumbersome.
-        # Either way, it would be best to have a common function like
-        # apply_fill(facecolor, edgecolor, filled)
-        # We may want to think about how to work with MarkerStyle objects
-        # in the absence of a `fill` semantic so that we can relax the
-        # constraint on mixing filled and unfilled markers...
+        points = mpl.collections.PathCollection(
+            paths,
+            sizes=pointsize ** 2,
+            offsets=data[["x", "y"]].to_numpy(),
+            facecolors=color,
+            edgecolors=edgecolor,
+            transOffset=ax.transData,
+            transform=mpl.transforms.IdentityTransform(),
+        )
+        ax.add_collection(points)
+        ax.autoscale_view()
 
 
 class Line(Mark):

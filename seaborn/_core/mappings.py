@@ -75,7 +75,7 @@ class Semantic:
         raise NotImplementedError
 
     def _standardize_value(self, value: Any) -> Any:
-        """Convert value to a standardize representation."""
+        """Convert value to a standardized representation."""
         return value
 
     def _standardize_values(

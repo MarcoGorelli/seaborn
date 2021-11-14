@@ -470,6 +470,10 @@ class Plot:
         scale = mpl.scale.LinearScale(var)
         self._scales[var] = DateTimeScale(scale, norm)
 
+        # TODO I think rather than dealing with the question of "should we follow
+        # pandas or matplotlib conventions with float -> date conversion, we should
+        # force the user to provide a unit when calling this with a numeric variable.
+
         # TODO what else should this do?
         # We should pass kwargs to the DateTime cast probably.
         # Should we also explicitly expose more of the pd.to_datetime interface?

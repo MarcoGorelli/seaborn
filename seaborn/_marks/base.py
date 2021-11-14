@@ -23,6 +23,9 @@ class Feature:
         self.val = val
         self.rc = rc
 
+        # TODO some sort of smart=True default to indicate that default value is
+        # dependent the specific plot?
+
     @property
     def default(self) -> Any:
         if self.val is not None:
