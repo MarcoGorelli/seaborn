@@ -53,7 +53,7 @@ class Point(Mark):  # TODO types
         # TODO: this fails if x or y are paired. Apply to all columns that start with y?
         return df.assign(x=df["x"] + x_jitter, y=df["y"] + y_jitter)
 
-    def _plot_split(self, keys, data, ax, mappings, orient, kws):
+    def _plot_split(self, keys, data, ax, orient, kws):
 
         # TODO can we simplify this by modifying data with mappings before sending in?
         # Likewise, will we need to know `keys` here? Elsewhere we do `if key in keys`,
@@ -112,14 +112,14 @@ class Line(Mark):
     grouping_vars = ["color", "marker", "linestyle", "linewidth"]
     supports = ["color", "marker", "linestyle", "linewidth"]
 
-    def _plot_split(self, keys, data, ax, mappings, orient, kws):
+    def _plot_split(self, keys, data, ax, orient, kws):
 
         if "color" in keys:
-            kws["color"] = mappings["color"](keys["color"])
+            kws["color"] = self.mappings["color"](keys["color"])
         if "linestyle" in keys:
-            kws["linestyle"] = mappings["linestyle"](keys["linestyle"])
+            kws["linestyle"] = self.mappings["linestyle"](keys["linestyle"])
         if "linewidth" in keys:
-            kws["linewidth"] = mappings["linewidth"](keys["linewidth"])
+            kws["linewidth"] = self.mappings["linewidth"](keys["linewidth"])
 
         ax.plot(data["x"], data["y"], **kws)
 
@@ -129,11 +129,11 @@ class Area(Mark):
     grouping_vars = ["color"]
     supports = ["color"]
 
-    def _plot_split(self, keys, data, ax, mappings, orient, kws):
+    def _plot_split(self, keys, data, ax, orient, kws):
 
         if "color" in keys:
             # TODO as we need the kwarg to be facecolor, that should be the mappable?
-            kws["facecolor"] = mappings["color"](keys["color"])
+            kws["facecolor"] = self.mappings["color"](keys["color"])
 
         # TODO how will orient work here?
         # Currently this requires you to specify both orient and use y, xmin, xmin

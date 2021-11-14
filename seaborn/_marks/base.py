@@ -1,4 +1,5 @@
 from __future__ import annotations
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
@@ -45,19 +46,30 @@ class Mark:
 
         self._kwargs = kwargs
 
+    # TODO also orient?
+    @contextmanager
+    def use(self, mappings: dict) -> None:
+
+        self.mappings = mappings
+        yield
+        del self.mappings
+
     def _resolve(
         self,
         name: str,
-        mappings: dict,
         data: DataFrame | dict,
         f: Callable = lambda x: x,
     ) -> Any:
+
+        # TODO could we reach into SEMANTICS and use standardization function
+        # rather than passing in f? Or even do that in the constructor?
+        # (But probably fine to do it here too)
 
         feature = self.features[name]
         if isinstance(feature, Feature):
 
             if name in data:
-                return mappings[name](data[name])
+                return np.asarray(self.mappings[name](data[name]))
 
             default = f(feature.default)
             if isinstance(data, pd.DataFrame):
@@ -72,7 +84,6 @@ class Mark:
     def _adjust(
         self,
         df: DataFrame,
-        mappings: dict,
         orient: Literal["x", "y"],
     ) -> DataFrame:
 
@@ -107,13 +118,12 @@ class Mark:
     def _plot(
         self,
         split_generator: Callable[[], Generator],
-        mappings: MappingDict,
         orient: Literal["x", "y"],
     ) -> None:
         """Main interface for creating a plot."""
         for keys, data, ax in split_generator():
             kws = self._kwargs.copy()
-            self._plot_split(keys, data, ax, mappings, orient, kws)
+            self._plot_split(keys, data, ax, orient, kws)
 
         self._finish_plot()
 

@@ -542,7 +542,7 @@ class Plot:
         plotter._setup_mappings(self)
 
         for layer in plotter._layers:
-            plotter._plot_layer(self, layer, plotter._mappings)
+            plotter._plot_layer(self, layer)
 
         # TODO this should be configurable
         if not plotter._figure.get_constrained_layout():
@@ -859,7 +859,6 @@ class Plotter:
         self,
         p: Plot,
         layer: dict[str, Any],  # TODO layer should be a TypedDict
-        mappings: dict[str, SemanticMapping]
     ) -> None:
 
         default_grouping_vars = ["col", "row", "group"]  # TODO where best to define?
@@ -881,7 +880,7 @@ class Plotter:
                 grouping_vars = stat.grouping_vars + default_grouping_vars
                 df = self._apply_stat(df, grouping_vars, stat, orient)
 
-            df = mark._adjust(df, mappings, orient)
+            df = mark._adjust(df, orient)
 
             # Our statistics happen on the scale we want, but then matplotlib is going
             # to re-handle the scaling, so we need to invert before handing off
@@ -889,10 +888,11 @@ class Plotter:
 
             grouping_vars = mark.grouping_vars + default_grouping_vars
             split_generator = self._setup_split_generator(
-                grouping_vars, df, mappings, subplots
+                grouping_vars, df, subplots
             )
 
-            mark._plot(split_generator, mappings, orient)
+            with mark.use(self._mappings):
+                mark._plot(split_generator, orient)
 
     def _apply_stat(
         self,
@@ -1033,7 +1033,6 @@ class Plotter:
         self,
         grouping_vars: list[str],
         df: DataFrame,
-        mappings: dict[str, SemanticMapping],
         subplots: list[dict[str, Any]],
     ) -> Callable[[], Generator]:
 
