@@ -13,8 +13,8 @@ class Point(Mark):  # TODO types
 
     def __init__(
         self,
-        color=Feature("C0"),
-        edgecolor=Feature("w"),
+        color=Feature(source="edgecolor"),
+        edgecolor=Feature("b"),
         alpha=Feature(1),  # TODO auto alpha?
         marker=Feature(rc="scatter.marker"),
         pointsize=Feature(5),
@@ -90,13 +90,10 @@ class Point(Mark):  # TODO types
         # But it would be BETTER to have succient way of specifiying, e.g.
         # edgecolor = set_hls_values(facecolor, l=.8)
 
-        # TODO lots of questions about the best way to implement fill
-        # e.g. we need to remap color to edgecolor where fill is false
-        color[:, 3] = alpha
-
         fill &= np.array([m.is_filled() for m in marker])
         edgecolor[~fill] = color[~fill]
         color[~fill, 3] = 0
+        color[fill, 3] = alpha[fill]
 
         paths = [m.get_path().transformed(m.get_transform()) for m in marker]
 

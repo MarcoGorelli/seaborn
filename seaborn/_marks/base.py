@@ -19,8 +19,14 @@ if TYPE_CHECKING:
 
 class Feature:
     """Class supporting visual features set directly, via mapping, or from rcParams."""
-    def __init__(self, val: Any = None, rc: str | None = None):
+    def __init__(
+        self,
+        val: Any = None,
+        source: str | None = None,
+        rc: str | None = None
+    ):
         self.val = val
+        self.source = source
         self.rc = rc
 
         # TODO some sort of smart=True default to indicate that default value is
@@ -73,6 +79,12 @@ class Mark:
 
             if name in data:
                 return np.asarray(self.mappings[name](data[name]))
+
+            if feature.source is not None:
+                # TODO add source_func or similar to transform the source value
+                # e.g. set linewidth by pointsize or extract alpha value from color
+                # (latter suggests a new concept: "second-order" features/semantics)
+                return self._resolve(feature.source, data, f)
 
             default = f(feature.default)
             if isinstance(data, pd.DataFrame):
