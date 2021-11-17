@@ -42,10 +42,10 @@ class Bar(Mark):
 
         self._multiple = multiple
 
-    def _adjust(self, df, mappings, orient):
+    def _adjust(self, df):
 
         # Abstract out the pos/val axes based on orientation
-        if orient == "y":
+        if self.orient == "y":
             pos, val = "yx"
         else:
             pos, val = "xy"

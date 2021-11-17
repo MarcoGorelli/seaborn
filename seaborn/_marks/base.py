@@ -55,13 +55,15 @@ class Mark:
 
         self._kwargs = kwargs
 
-    # TODO also orient?
     @contextmanager
-    def use(self, mappings: dict) -> None:
+    def use(self, mappings, orient) -> None:
 
         self.mappings = mappings
-        yield
-        del self.mappings
+        self.orient = orient
+        try:
+            yield
+        finally:
+            del self.mappings, self.orient
 
     def _resolve(
         self,
@@ -99,7 +101,6 @@ class Mark:
     def _adjust(
         self,
         df: DataFrame,
-        orient: Literal["x", "y"],
     ) -> DataFrame:
 
         return df
@@ -133,12 +134,11 @@ class Mark:
     def _plot(
         self,
         split_generator: Callable[[], Generator],
-        orient: Literal["x", "y"],
     ) -> None:
         """Main interface for creating a plot."""
         for keys, data, ax in split_generator():
             kws = self._kwargs.copy()
-            self._plot_split(keys, data, ax, orient, kws)
+            self._plot_split(keys, data, ax, kws)
 
         self._finish_plot()
 
@@ -147,8 +147,6 @@ class Mark:
         keys: dict[str, Any],
         data: DataFrame,
         ax: Axes,
-        mappings: MappingDict,
-        orient: Literal["x", "y"],
         kws: dict,
     ) -> None:
         """Method that plots specific subsets of data. Must be defined by subclass."""

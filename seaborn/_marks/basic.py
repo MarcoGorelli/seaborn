@@ -41,7 +41,7 @@ class Point(Mark):  # TODO types
 
         self.jitter = jitter  # TODO decide on form of jitter and add type hinting
 
-    def _adjust(self, df, orient):
+    def _adjust(self, df):
 
         if self.jitter is None:
             return df
@@ -66,7 +66,7 @@ class Point(Mark):  # TODO types
         # TODO: this fails if x or y are paired. Apply to all columns that start with y?
         return df.assign(x=df["x"] + x_jitter, y=df["y"] + y_jitter)
 
-    def _plot_split(self, keys, data, ax, orient, kws):
+    def _plot_split(self, keys, data, ax, kws):
 
         # TODO can we simplify this by modifying data with mappings before sending in?
         # Likewise, will we need to know `keys` here? Elsewhere we do `if key in keys`,
@@ -119,7 +119,7 @@ class Line(Mark):
     grouping_vars = ["color", "marker", "linestyle", "linewidth"]
     supports = ["color", "marker", "linestyle", "linewidth"]
 
-    def _plot_split(self, keys, data, ax, orient, kws):
+    def _plot_split(self, keys, data, ax, kws):
 
         if "color" in keys:
             kws["color"] = self.mappings["color"](keys["color"])
@@ -136,7 +136,7 @@ class Area(Mark):
     grouping_vars = ["color"]
     supports = ["color"]
 
-    def _plot_split(self, keys, data, ax, orient, kws):
+    def _plot_split(self, keys, data, ax, kws):
 
         if "color" in keys:
             # TODO as we need the kwarg to be facecolor, that should be the mappable?
@@ -146,7 +146,7 @@ class Area(Mark):
         # Currently this requires you to specify both orient and use y, xmin, xmin
         # to get a fill along the x axis. Seems like we should need only one of those?
         # Alternatively, should we just make the PolyCollection manually?
-        if orient == "x":
+        if self.orient == "x":
             ax.fill_between(data["x"], data["ymin"], data["ymax"], **kws)
         else:
             ax.fill_betweenx(data["y"], data["xmin"], data["xmax"], **kws)

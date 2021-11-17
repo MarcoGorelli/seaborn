@@ -878,25 +878,28 @@ class Plotter:
 
             orient = layer["orient"] or mark._infer_orient(scales)
 
-            df = self._scale_coords(subplots, df)
+            with (
+                mark.use(self._mappings, orient)
+                # TODO this doesn't work if stat is None
+                # stat.use(mappings=self._mappings, orient=orient),
+            ):
 
-            if stat is not None:
-                grouping_vars = stat.grouping_vars + default_grouping_vars
-                df = self._apply_stat(df, grouping_vars, stat, orient)
+                df = self._scale_coords(subplots, df)
 
-            df = mark._adjust(df, orient)
+                if stat is not None:
+                    grouping_vars = stat.grouping_vars + default_grouping_vars
+                    df = self._apply_stat(df, grouping_vars, stat, orient)
 
-            # Our statistics happen on the scale we want, but then matplotlib is going
-            # to re-handle the scaling, so we need to invert before handing off
-            df = self._unscale_coords(subplots, df)
+                df = mark._adjust(df)
 
-            grouping_vars = mark.grouping_vars + default_grouping_vars
-            split_generator = self._setup_split_generator(
-                grouping_vars, df, subplots
-            )
+                df = self._unscale_coords(subplots, df)
 
-            with mark.use(self._mappings):
-                mark._plot(split_generator, orient)
+                grouping_vars = mark.grouping_vars + default_grouping_vars
+                split_generator = self._setup_split_generator(
+                    grouping_vars, df, subplots
+                )
+
+                mark._plot(split_generator)
 
     def _apply_stat(
         self,
