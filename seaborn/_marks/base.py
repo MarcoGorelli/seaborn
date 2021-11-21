@@ -22,11 +22,11 @@ class Feature:
     def __init__(
         self,
         val: Any = None,
-        source: str | None = None,
+        depend: str | None = None,
         rc: str | None = None
     ):
         self.val = val
-        self.source = source
+        self.depend = depend
         self.rc = rc
 
         # TODO some sort of smart=True default to indicate that default value is
@@ -77,26 +77,27 @@ class Mark:
         # (But probably fine to do it here too)
 
         feature = self.features[name]
-        if isinstance(feature, Feature):
+        directly_specified = not isinstance(feature, Feature)
 
-            if name in data:
-                return np.asarray(self.mappings[name](data[name]))
-
-            if feature.source is not None:
-                # TODO add source_func or similar to transform the source value
-                # e.g. set linewidth by pointsize or extract alpha value from color
-                # (latter suggests a new concept: "second-order" features/semantics)
-                return self._resolve(feature.source, data, f)
-
-            default = f(feature.default)
+        if directly_specified:
+            feature = f(feature)
             if isinstance(data, pd.DataFrame):
-                default = np.array([default] * len(data))
-            return default
+                feature = np.array([feature] * len(data))
+            return feature
 
-        feature = f(feature)
+        if name in data:
+            return np.asarray(self.mappings[name](data[name]))
+
+        if feature.depend is not None:
+            # TODO add source_func or similar to transform the source value
+            # e.g. set linewidth by pointsize or extract alpha value from color
+            # (latter suggests a new concept: "second-order" features/semantics)
+            return self._resolve(feature.depend, data, f)
+
+        default = f(feature.default)
         if isinstance(data, pd.DataFrame):
-            feature = np.array([feature] * len(data))
-        return feature
+            default = np.array([default] * len(data))
+        return default
 
     def _adjust(
         self,
@@ -123,6 +124,9 @@ class Mark:
             return "y"
 
         elif x_type != "numeric" and y_type == "numeric":
+
+            # TODO should we try to orient based on number of unique values?
+
             return "x"
 
         elif x_type == "numeric" and y_type != "numeric":
