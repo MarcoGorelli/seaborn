@@ -13,14 +13,14 @@ class Point(Mark):  # TODO types
 
     def __init__(
         self,
-        color=Feature(source="edgecolor"),
-        edgecolor=Feature("b"),
+        color=Feature("C0"),
         alpha=Feature(1),  # TODO auto alpha?
+        fill=Feature(True),  # TODO needed? If so move up
+        fillcolor=Feature(depend="color"),
+        fillalpha=Feature(.2),
         marker=Feature(rc="scatter.marker"),
         pointsize=Feature(5),
-        linewidth=Feature(1),  # TODO how to scale with point size?
-        edgewidth=Feature(.25),  # TODO how to scale with point size?
-        fill=Feature(True),
+        linewidth=Feature(.75),  # TODO relevant rcParam?
         jitter=None,
         **kwargs,  # TODO needed?
     ):
@@ -30,12 +30,12 @@ class Point(Mark):  # TODO types
         # TODO do this automatically using self.supports?
         self.features = dict(
             color=color,
-            edgecolor=edgecolor,
             alpha=alpha,
+            fillcolor=fillcolor,
+            fillalpha=fillalpha,
             marker=marker,
             pointsize=pointsize,
             linewidth=linewidth,
-            edgewidth=edgewidth,
             fill=fill,
         )
 
@@ -78,36 +78,56 @@ class Point(Mark):  # TODO types
 
         kws = kws.copy()
 
-        color = self._resolve("color", data, to_rgba)
-        edgecolor = self._resolve("edgecolor", data, to_rgba)
-        alpha = self._resolve("alpha", data, float)
+        # TODO is it possible to accept alpha channel with both color and alpha?
+        # This is hard because we want (fill)alpha to have a default value.
+        # We may need a more specialized self._resolve_color that uses both
+        # Maybe move the face/edge logic there too?
+
+        edgecolors = self._resolve("color", data, to_rgba)
+        edgealpha = self._resolve("alpha", data, float)
+
+        facecolors = self._resolve("fillcolor", data, to_rgba)
+        facealpha = self._resolve("fillalpha", data, float)
+
+        linewidths = self._resolve("linewidth", data, float)
 
         marker = self._resolve("marker", data, MarkerStyle)
-        fill = self._resolve("fill", data, bool)
         pointsize = self._resolve("pointsize", data, float)
+        fill = self._resolve("fill", data, bool)
 
         # TODO matplotlib has "edgecolor='face'" and it would be good to keep that
         # But it would be BETTER to have succient way of specifiying, e.g.
         # edgecolor = set_hls_values(facecolor, l=.8)
 
         fill &= np.array([m.is_filled() for m in marker])
-        edgecolor[~fill] = color[~fill]
-        color[~fill, 3] = 0
-        color[fill, 3] = alpha[fill]
+        # TODO one problem with fill is that the default fill alpha is pretty subtle.
+        # Should its default depend on fill? Possible ... buy more complicated.
+
+        # TODO edgewidth/linewidth based on fill?
+        # TODO make edgewidth scale with pointsize by default
+        # - (basic idea to have a source and source func?)
+
+        edgecolors[:, 3] = edgealpha
+
+        facecolors[:, 3] = facealpha
+        facecolors[~fill, 3] = 0
 
         paths = [m.get_path().transformed(m.get_transform()) for m in marker]
+        sizes = pointsize ** 2
+        offsets = data[["x", "y"]].to_numpy()
 
         points = mpl.collections.PathCollection(
-            paths,
-            sizes=pointsize ** 2,
-            offsets=data[["x", "y"]].to_numpy(),
-            facecolors=color,
-            edgecolors=edgecolor,
+            paths=paths,
+            sizes=sizes,
+            offsets=offsets,
+            facecolors=facecolors,
+            edgecolors=edgecolors,
+            linewidths=linewidths,
             transOffset=ax.transData,
             transform=mpl.transforms.IdentityTransform(),
         )
         ax.add_collection(points)
-        ax.autoscale_view()
+        ax.autoscale_view()  # TODO or do in self.finish_plot?
 
 
 class Line(Mark):

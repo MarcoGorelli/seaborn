@@ -56,11 +56,11 @@ if TYPE_CHECKING:
 
 SEMANTICS = {  # TODO should this be pluggable?
     "color": ColorSemantic(),
-    "facecolor": ColorSemantic(variable="facecolor"),
+    "fillcolor": ColorSemantic(variable="fillcolor"),
     "edgecolor": ColorSemantic(variable="edgecolor"),
+    "fill": BooleanSemantic(values=None, variable="fill"),
     "marker": MarkerSemantic(),
     "linestyle": LineStyleSemantic(),
-    "fill": BooleanSemantic(values=None, variable="fill"),
     "linewidth": LineWidthSemantic(),
 }
 
