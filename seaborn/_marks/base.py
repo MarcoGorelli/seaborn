@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
+from seaborn._core.plot import SEMANTICS
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal, Any, Type, Dict, Callable
@@ -67,9 +69,8 @@ class Mark:
 
     def _resolve(
         self,
-        name: str,
         data: DataFrame | dict,
-        f: Callable = lambda x: x,
+        name: str,
     ) -> Any:
 
         # TODO could we reach into SEMANTICS and use standardization function
@@ -77,10 +78,11 @@ class Mark:
         # (But probably fine to do it here too)
 
         feature = self.features[name]
+        standardize = SEMANTICS[name]._standardize_value
         directly_specified = not isinstance(feature, Feature)
 
         if directly_specified:
-            feature = f(feature)
+            feature = standardize(feature)
             if isinstance(data, pd.DataFrame):
                 feature = np.array([feature] * len(data))
             return feature

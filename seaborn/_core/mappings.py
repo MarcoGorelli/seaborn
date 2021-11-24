@@ -154,6 +154,9 @@ class DiscreteSemantic(Semantic):
 
 class BooleanSemantic(DiscreteSemantic):
     """Semantic mapping where only possible output values are True or False."""
+    def _standardize_value(self, value: Any) -> bool:
+        return bool(value)
+
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
     ) -> DiscreteValueSpec | Series:
@@ -189,15 +192,20 @@ class ContinuousSemantic(Semantic):
     _default_range: tuple[float, float] = (0, 1)
 
     def __init__(self, values: ContinuousValueSpec = None, variable: str = ""):
+
         if values is None:
             values = self.default_range
-        self.values = values
+        self.values = self._standardize_values(values)
         self.variable = variable
 
     @property
     def default_range(self) -> tuple[float, float]:
         """Default output range; implemented as a property so rcParams can be used."""
         return self._default_range
+
+    def _standardize_value(self, value):
+        """Convert value to float for numeric operations."""
+        return float(value)
 
     def _infer_map_type(
         self,
