@@ -94,12 +94,32 @@ class Mark:
             # TODO add source_func or similar to transform the source value
             # e.g. set linewidth by pointsize or extract alpha value from color
             # (latter suggests a new concept: "second-order" features/semantics)
-            return self._resolve(feature.depend, data, f)
+            return self._resolve(data, feature.depend)
 
-        default = f(feature.default)
+        default = standardize(feature.default)
         if isinstance(data, pd.DataFrame):
             default = np.array([default] * len(data))
         return default
+
+    def _resolve_color(
+        self,
+        data: DataFrame | dict,
+        prefix: str = "",
+    ) -> Any:  # TODO tighter type here? rgba array, right?
+
+        # TODO
+        # we want this to respect alpha if set in the {fill/edge}color feature,
+        # and otherwise use the default alpha value.
+        # (But what if alpha is passed in both color and as explicit alpha?)
+        # This is somewhat tricky to do!
+
+        color = self._resolve(data, f"{prefix}color")
+        alpha = self._resolve(data, f"{prefix}alpha")
+
+        if isinstance(color, tuple):
+            return mpl.colors.to_rgba(color, alpha)
+        else:
+            return mpl.colors.to_rgba_array(color, alpha)
 
     def _adjust(
         self,

@@ -20,6 +20,8 @@ from seaborn._core.mappings import (
     MarkerSemantic,
     LineStyleSemantic,
     LineWidthSemantic,
+    AlphaSemantic,
+    PointSizeSemantic,
     IdentityMapping,
 )
 from seaborn._core.scales import (
@@ -57,11 +59,14 @@ if TYPE_CHECKING:
 SEMANTICS = {  # TODO should this be pluggable?
     "color": ColorSemantic(),
     "fillcolor": ColorSemantic(variable="fillcolor"),
+    "alpha": AlphaSemantic(),
+    "fillalpha": AlphaSemantic(variable="fillalpha"),
     "edgecolor": ColorSemantic(variable="edgecolor"),
     "fill": BooleanSemantic(values=None, variable="fill"),
     "marker": MarkerSemantic(),
     "linestyle": LineStyleSemantic(),
     "linewidth": LineWidthSemantic(),
+    "pointsize": PointSizeSemantic(),
 }
 
 

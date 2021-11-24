@@ -555,8 +555,7 @@ class HatchSemantic(DiscreteSemantic):
     ...
 
 
-# TODO markersize? pointsize? How to specify diameter but scale area?
-class AreaSemantic(ContinuousSemantic):
+class PointSizeSemantic(ContinuousSemantic):
     ...
 
 
@@ -566,7 +565,7 @@ class WidthSemantic(ContinuousSemantic):
 
 # TODO or opacity?
 class AlphaSemantic(ContinuousSemantic):
-    _default_range = .3, 1
+    _default_range = .2, 1
 
 
 class LineWidthSemantic(ContinuousSemantic):
