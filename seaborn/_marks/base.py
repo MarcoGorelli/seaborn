@@ -55,6 +55,7 @@ class Mark:
 
     def __init__(self, **kwargs: Any):
 
+        self.features = {}
         self._kwargs = kwargs
 
     @contextmanager
