@@ -304,26 +304,37 @@ class Plot:
         self._scale_from_map("facecolor", palette, order)
         return self
 
-    def map_facecolor(
+    def map_alpha(
         self,
-        palette: PaletteSpec = None,
-        order: OrderSpec = None,
-        norm: NormSpec = None,
+        values: ContinuousValueSpec = None,
+        order: OrderSpec | None = None,
+        norm: Normalize | None = None,
     ) -> Plot:
 
-        self._semantics["facecolor"] = ColorSemantic(palette, variable="facecolor")
-        self._scale_from_map("facecolor", palette, order)
+        self._semantics["alpha"] = AlphaSemantic(values, variable="alpha")
+        self._scale_from_map("alpha", values, order, norm)
         return self
 
-    def map_edgecolor(
+    def map_fillcolor(
         self,
         palette: PaletteSpec = None,
         order: OrderSpec = None,
         norm: NormSpec = None,
     ) -> Plot:
 
-        self._semantics["edgecolor"] = ColorSemantic(palette, variable="edgecolor")
-        self._scale_from_map("edgecolor", palette, order)
+        self._semantics["fillcolor"] = ColorSemantic(palette, variable="fillcolor")
+        self._scale_from_map("fillcolor", palette, order)
+        return self
+
+    def map_fillalpha(
+        self,
+        values: ContinuousValueSpec = None,
+        order: OrderSpec | None = None,
+        norm: Normalize | None = None,
+    ) -> Plot:
+
+        self._semantics["fillalpha"] = AlphaSemantic(values, variable="fillalpha")
+        self._scale_from_map("fillalpha", values, order, norm)
         return self
 
     def map_fill(
