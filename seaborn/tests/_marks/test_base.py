@@ -97,8 +97,11 @@ class TestFeature:
 
         assert m._resolve_color({"alpha": "b"}) == mpl.colors.to_rgba(c, .5)
 
-        df = pd.DataFrame({"alpha": mapping.keys()})
-        expected = mpl.colors.to_rgba_array(c, list(mapping.values()))
+        df = pd.DataFrame({"alpha": list(mapping.keys())})
+
+        # Do this in two steps for mpl 3.2 compat
+        expected = mpl.colors.to_rgba_array([c] * len(df))
+        expected[:, 3] = list(mapping.values())
 
         assert_array_equal(m._resolve_color(df), expected)
 
