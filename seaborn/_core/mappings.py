@@ -584,7 +584,7 @@ class HatchSemantic(DiscreteSemantic):
 
 
 class PointSizeSemantic(ContinuousSemantic):
-    ...
+    _default_range = 2, 8
 
 
 class WidthSemantic(ContinuousSemantic):
