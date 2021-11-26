@@ -59,7 +59,7 @@ class Mark:
         self._kwargs = kwargs
 
     @contextmanager
-    def use(self, mappings, orient) -> None:
+    def use(self, mappings, orient) -> Generator:
 
         self.mappings = mappings
         self.orient = orient
