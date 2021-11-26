@@ -11,9 +11,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal, Any, Type, Dict, Callable
     from collections.abc import Generator
+    from numpy import ndarray
     from pandas import DataFrame
     from matplotlib.axes import Axes
-    from seaborn._core.mappings import SemanticMapping
+    from seaborn._core.mappings import SemanticMapping, RGBATuple
     from seaborn._stats.base import Stat
 
     MappingDict = Dict[str, SemanticMapping]
@@ -102,7 +103,7 @@ class Mark:
         self,
         data: DataFrame | dict,
         prefix: str = "",
-    ) -> Any:  # TODO tighter type here? rgba array, right?
+    ) -> RGBATuple | ndarray:
 
         color = self._resolve(data, f"{prefix}color")
         alpha = self._resolve(data, f"{prefix}alpha")
