@@ -9,13 +9,20 @@ from seaborn._marks.base import Mark, Feature
 from seaborn._core.mappings import LookupMapping
 
 
-class TestFeatures:
+class TestFeature:
 
     def mark(self, **features):
 
         m = Mark()
         m.features = features
         return m
+
+    def test_repr(self):
+
+        assert str(Feature(.5)) == "<0.5>"
+        assert str(Feature("CO")) == "<'CO'>"
+        assert str(Feature(rc="lines.linewidth")) == "<rc:lines.linewidth>"
+        assert str(Feature(depend="color")) == "<depend:color>"
 
     def test_value(self):
 
@@ -92,6 +99,7 @@ class TestFeatures:
 
         df = pd.DataFrame({"alpha": mapping.keys()})
         expected = mpl.colors.to_rgba_array(c, list(mapping.values()))
+
         assert_array_equal(m._resolve_color(df), expected)
 
     def test_fillcolor(self):

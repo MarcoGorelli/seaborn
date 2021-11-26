@@ -28,12 +28,30 @@ class Feature:
         depend: str | None = None,
         rc: str | None = None
     ):
+
+        # TODO input checks? i.e.:
+        # - At least one not None
+        # - rc is an actual rcParam
+        # - depend is another semantic?
+
         self.val = val
         self.depend = depend
         self.rc = rc
 
         # TODO some sort of smart=True default to indicate that default value is
         # dependent the specific plot?
+
+    def __repr__(self):
+
+        if self.val is not None:
+            s = f"<{repr(self.val)}>"
+        elif self.depend is not None:
+            s = f"<depend:{self.depend}>"
+        elif self.rc is not None:
+            s = f"<rc:{self.rc}>"
+        else:
+            s = "<undefined>"
+        return s
 
     @property
     def default(self) -> Any:
