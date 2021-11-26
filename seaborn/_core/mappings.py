@@ -54,7 +54,7 @@ if TYPE_CHECKING:
 
     RGBTuple = Tuple[float, float, float]
     RGBATuple = Tuple[float, float, float, float]
-    ColorSpec = RGBTuple | RGBATuple | str
+    ColorSpec = Union[RGBTuple, RGBATuple, str]
 
     DashPattern = Tuple[float, ...]
     DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
@@ -205,9 +205,16 @@ class ContinuousSemantic(Semantic):
         """Default output range; implemented as a property so rcParams can be used."""
         return self._default_range
 
-    def _standardize_value(self, value):
+    def _standardize_value(self, value: Any) -> float:
         """Convert value to float for numeric operations."""
         return float(value)
+
+    def _standardize_values(self, values: ContinuousValueSpec) -> ContinuousValueSpec:
+
+        if isinstance(values, tuple):
+            lo, hi = values
+            return self._standardize_value(lo), self._standardize_value(hi)
+        return super()._standardize_values(values)
 
     def _infer_map_type(
         self,
