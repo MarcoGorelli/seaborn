@@ -286,7 +286,7 @@ class ColorSemantic(Semantic):
 
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
-    ) -> ArrayLike | dict[Any, RGBTuple | RGBATuple] | None:
+    ) -> list[RGBTuple | RGBATuple] | dict[Any, RGBTuple | RGBATuple] | None:
         """Standardize colors as an RGB tuple or n x 3 RGB array."""
         if values is None:
             return None
@@ -337,7 +337,7 @@ class ColorSemantic(Semantic):
         data: Series,
         palette: PaletteSpec,
         order: list | None,
-    ) -> dict[Any, tuple[float, float, float, float]]:
+    ) -> dict[Any, RGBTuple | RGBATuple]:
         """Determine colors when the mapping is categorical."""
         levels = categorical_order(data, order)
         n_colors = len(levels)
@@ -359,8 +359,7 @@ class ColorSemantic(Semantic):
                 colors = color_palette(palette, n_colors)
             mapping = dict(zip(levels, colors))
 
-        mapping = self._standardize_values(mapping)
-        return mapping
+        return {k: self._standardize_value(v) for k, v in mapping.items()}
 
     def _setup_numeric(
         self,
