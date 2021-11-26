@@ -279,7 +279,7 @@ class TestColor:
     def test_alpha_in_palette(self):
 
         x = pd.Series(["a", "b", "c"])
-        colors = ["#abca", "#1231", "#8989"]
+        colors = [(.2, .2, .3, .5), (.1, .2, .3, 1), (.5, .6, .2, 0)]
         scale = get_default_scale(x)
         m = ColorSemantic(colors).setup(x, scale)
         assert m(x) == [to_rgba(c) for c in colors]
@@ -408,9 +408,9 @@ class TestColor:
 
     def test_mixture_of_alpha_nonalpha(self):
 
-        x = pd.Series(["a", "b", "c"])
+        x = pd.Series(["a", "b"])
         scale = get_default_scale(x)
-        palette = ["#123", "#555A", "#888"]
+        palette = [(1, 0, .5), (.5, .5, .5, .5)]
 
         err = "Palette cannot mix colors defined with and without alpha channel."
         with pytest.raises(ValueError, match=err):
