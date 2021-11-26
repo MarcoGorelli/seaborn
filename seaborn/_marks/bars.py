@@ -120,18 +120,18 @@ class Bar(Mark):
 
         return df
 
-    def _plot_split(self, keys, data, ax, mappings, orient, kws):
+    def _plot_split(self, keys, data, ax, kws):
 
         kws.update({
             k: v for k, v in self._mappable_attributes.items() if v is not None
         })
 
         if "color" in data:
-            kws.setdefault("color", mappings["color"](data["color"]))
+            kws.setdefault("color", self.mappings["color"](data["color"]))
         else:
             kws.setdefault("color", "C0")  # FIXME:default attributes
 
-        if orient == "y":
+        if self.orient == "y":
             func = ax.barh
             varmap = dict(y="y", width="x", height="width")
         else:
