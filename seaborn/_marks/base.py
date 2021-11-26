@@ -74,10 +74,6 @@ class Mark:
         name: str,
     ) -> Any:
 
-        # TODO could we reach into SEMANTICS and use standardization function
-        # rather than passing in f? Or even do that in the constructor?
-        # (But probably fine to do it here too)
-
         feature = self.features[name]
         standardize = SEMANTICS[name]._standardize_value
         directly_specified = not isinstance(feature, Feature)
