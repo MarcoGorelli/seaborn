@@ -295,7 +295,6 @@ class ColorSemantic(Semantic):
         else:
             return list(map(self._standardize_value, values))
 
-
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
         """Define the mapping using data values."""
         # TODO We also need to add some input checks ...
@@ -314,7 +313,9 @@ class ColorSemantic(Semantic):
         map_type = self._infer_map_type(scale, self.palette, data)
 
         if map_type == "categorical":
-            return LookupMapping(self._setup_categorical(data, self.palette, scale.order))
+            return LookupMapping(
+                self._setup_categorical(data, self.palette, scale.order)
+            )
 
         lookup, transform = self._setup_numeric(data, self.palette)
         if lookup:
