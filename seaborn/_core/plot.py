@@ -88,6 +88,8 @@ class Plot:
         **variables: VariableSpec,
     ):
 
+        # TODO accept *args that can be one or two as x, y?
+
         self._data = PlotData(data, variables)
         self._layers = []
 

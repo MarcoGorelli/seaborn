@@ -1,7 +1,7 @@
 """
 Classes that, together with the scales module, implement semantic mapping logic.
 
-Semantic mappings in seaborn transform data values into visual properties.
+Semantic mappings in seaborn transform data values into visual features.
 The implementations in this module output values that are suitable arguments for
 matplotlib artists or plotting functions.
 
@@ -9,7 +9,7 @@ There are two main class hierarchies here: Semantic classes and SemanticMapping
 classes. One way to think of the relationship is that a Semantic is a partial
 initialization of a SemanticMapping. Semantics hold the parameters specified by
 the user through the Plot interface and contain methods relevant to defining
-default values for specific visual parameters (e.g. generating arbitrarily-large
+default values for specific visual features (e.g. generating arbitrarily-large
 sets of distinct marker shapes) or standardizing user-provided values. The
 user-specified (or default) parameters are then used in combination with the
 data values to setup the SemanticMapping objects that are used to actually
@@ -53,6 +53,8 @@ if TYPE_CHECKING:
     from seaborn._core.typing import PaletteSpec, DiscreteValueSpec, ContinuousValueSpec
 
     RGBTuple = Tuple[float, float, float]
+    RGBATuple = Tuple[float, float, float, float]
+    ColorSpec = RGBTuple | RGBATuple | str
 
     DashPattern = Tuple[float, ...]
     DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
@@ -263,16 +265,28 @@ class ColorSemantic(Semantic):
         self.palette = palette
         self.variable = variable
 
+    def _standardize_value(
+        self, value: str | RGBTuple | RGBATuple
+    ) -> RGBTuple | RGBATuple:
+
+        has_alpha = (
+            (isinstance(value, str) and value.startswith("#") and len(value) in [5, 9])
+            or (isinstance(value, tuple) and len(value) == 4)
+        )
+        rgb_func = mpl.colors.to_rgba if has_alpha else mpl.colors.to_rgb
+
+        return rgb_func(value)
+
     def _standardize_values(
         self, values: DiscreteValueSpec | Series
-    ) -> ArrayLike | dict[Any, tuple[float, ...]] | None:
+    ) -> ArrayLike | dict[Any, RGBTuple | RGBATuple] | None:
         """Standardize colors as an RGB tuple or n x 3 RGB array."""
         if values is None:
             return None
-        elif isinstance(values, (pd.Series, list)):
-            return mpl.colors.to_rgba_array(values)[:, :3]
+        elif isinstance(values, dict):
+            return {k: self._standardize_value(v) for k, v in values.items()}
         else:
-            return {k: mpl.colors.to_rgba(v) for k, v in values.items()}
+            return list(map(self._standardize_value, values))
 
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
         """Define the mapping using data values."""

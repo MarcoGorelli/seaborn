@@ -108,19 +108,19 @@ class Mark:
         prefix: str = "",
     ) -> Any:  # TODO tighter type here? rgba array, right?
 
-        # TODO
-        # we want this to respect alpha if set in the {fill/edge}color feature,
-        # and otherwise use the default alpha value.
-        # (But what if alpha is passed in both color and as explicit alpha?)
-        # This is somewhat tricky to do!
-
         color = self._resolve(data, f"{prefix}color")
         alpha = self._resolve(data, f"{prefix}alpha")
 
+        # TODO this should respect alpha ... but double check!
+
         if isinstance(color, tuple):
-            return mpl.colors.to_rgba(color, alpha)
+            if len(color) == 3:
+                return mpl.colors.to_rgba(color, alpha)
+            return mpl.colors.to_rgba(color)
         else:
-            return mpl.colors.to_rgba_array(color, alpha)
+            if color.shape[1] == 3:
+                return mpl.colors.to_rgba_array(color, alpha)
+            return mpl.colors.to_rgba_array(color)
 
     def _adjust(
         self,
