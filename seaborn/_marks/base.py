@@ -108,8 +108,6 @@ class Mark:
         color = self._resolve(data, f"{prefix}color")
         alpha = self._resolve(data, f"{prefix}alpha")
 
-        # TODO this should respect alpha ... but double check!
-
         if isinstance(color, tuple):
             if len(color) == 3:
                 return mpl.colors.to_rgba(color, alpha)

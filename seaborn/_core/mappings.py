@@ -290,10 +290,17 @@ class ColorSemantic(Semantic):
         """Standardize colors as an RGB tuple or n x 3 RGB array."""
         if values is None:
             return None
-        elif isinstance(values, dict):
-            return {k: self._standardize_value(v) for k, v in values.items()}
+
+        if isinstance(values, dict):
+            values = {k: self._standardize_value(v) for k, v in values.items()}
+            has_alpha = (len(v) == 4 for v in values.values())
         else:
-            return list(map(self._standardize_value, values))
+            values = list(map(self._standardize_value, values))
+            has_alpha = (len(v) == 4 for v in values)
+        if len(set(has_alpha)) > 1:
+            err = "Palette cannot mix colors defined with and without alpha channel."
+            raise ValueError(err)
+        return values
 
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
         """Define the mapping using data values."""
@@ -352,7 +359,7 @@ class ColorSemantic(Semantic):
                 colors = color_palette(palette, n_colors)
             mapping = dict(zip(levels, colors))
 
-        mapping = {k: mpl.colors.to_rgba(v) for k, v in mapping.items()}
+        mapping = self._standardize_values(mapping)
         return mapping
 
     def _setup_numeric(
