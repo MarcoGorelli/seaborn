@@ -290,17 +290,11 @@ class ColorSemantic(Semantic):
         """Standardize colors as an RGB tuple or n x 3 RGB array."""
         if values is None:
             return None
-
-        if isinstance(values, dict):
-            values = {k: self._standardize_value(v) for k, v in values.items()}
-            has_alpha = (len(v) == 4 for v in values.values())
+        elif isinstance(values, dict):
+            return {k: self._standardize_value(v) for k, v in values.items()}
         else:
-            values = list(map(self._standardize_value, values))
-            has_alpha = (len(v) == 4 for v in values)
-        if len(set(has_alpha)) > 1:
-            err = "Palette cannot mix colors defined with and without alpha channel."
-            raise ValueError(err)
-        return values
+            return list(map(self._standardize_value, values))
+
 
     def setup(self, data: Series, scale: Scale) -> SemanticMapping:
         """Define the mapping using data values."""
@@ -320,10 +314,7 @@ class ColorSemantic(Semantic):
         map_type = self._infer_map_type(scale, self.palette, data)
 
         if map_type == "categorical":
-
-            return LookupMapping(
-                self._setup_categorical(data, self.palette, scale.order)
-            )
+            return LookupMapping(self._setup_categorical(data, self.palette, scale.order))
 
         lookup, transform = self._setup_numeric(data, self.palette)
         if lookup:
@@ -359,7 +350,15 @@ class ColorSemantic(Semantic):
                 colors = color_palette(palette, n_colors)
             mapping = dict(zip(levels, colors))
 
-        return {k: self._standardize_value(v) for k, v in mapping.items()}
+        # It would be cleaner to have this check in standardize_values, but that
+        # makes the typing a little tricky. The right solution is to properly type
+        # the function so that we know the return type matches the input type.
+        mapping = {k: self._standardize_value(v) for k, v in mapping.items()}
+        if len(set(len(v) for v in mapping.values())) > 1:
+            err = "Palette cannot mix colors defined with and without alpha channel."
+            raise ValueError(err)
+
+        return mapping
 
     def _setup_numeric(
         self,

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class Feature:
-    """Class supporting visual features set directly, via mapping, or from rcParams."""
+    """Class supporting several default strategies for setting visual features."""
     def __init__(
         self,
         val: Any = None,
