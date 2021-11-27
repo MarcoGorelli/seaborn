@@ -11,6 +11,7 @@ class Point(Mark):  # TODO types
 
     def __init__(
         self,
+        *,
         color=Feature("C0"),
         alpha=Feature(1),  # TODO auto alpha?
         fill=Feature(True),
@@ -25,7 +26,7 @@ class Point(Mark):  # TODO types
 
         super().__init__(**kwargs)
 
-        # TODO do this automatically using self.supports?
+        # TODO should this use SEMANTICS as the source of possible features?
         self.features = dict(
             color=color,
             alpha=alpha,
@@ -65,12 +66,6 @@ class Point(Mark):  # TODO types
         return df.assign(x=df["x"] + x_jitter, y=df["y"] + y_jitter)
 
     def _plot_split(self, keys, data, ax, kws):
-
-        # TODO can we simplify this by modifying data with mappings before sending in?
-        # Likewise, will we need to know `keys` here? Elsewhere we do `if key in keys`,
-        # but I think we can (or can make it so we can) just do `if key in data`.
-
-        # Then the signature could be _plot_split(ax, data, kws):  ... much simpler!
 
         # TODO Not backcompat with allowed (but nonfunctional) univariate plots
 

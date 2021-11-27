@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
+import pytest
 from numpy.testing import assert_array_equal
 
 from seaborn._marks.base import Mark, Feature
@@ -23,6 +24,13 @@ class TestFeature:
         assert str(Feature("CO")) == "<'CO'>"
         assert str(Feature(rc="lines.linewidth")) == "<rc:lines.linewidth>"
         assert str(Feature(depend="color")) == "<depend:color>"
+
+    def test_input_checks(self):
+
+        with pytest.raises(AssertionError):
+            Feature(rc="bogus.parameter")
+        with pytest.raises(AssertionError):
+            Feature(depend="nonexistent_feature")
 
     def test_value(self):
 

@@ -21,28 +21,35 @@ if TYPE_CHECKING:
 
 
 class Feature:
-    """Class supporting several default strategies for setting visual features."""
     def __init__(
         self,
         val: Any = None,
         depend: str | None = None,
         rc: str | None = None
     ):
+        """Class supporting several default strategies for setting visual features.
 
-        # TODO input checks? i.e.:
-        # - At least one not None
-        # - rc is an actual rcParam
-        # - depend is another semantic?
+        Parameters
+        ----------
+        val :
+            Use this value as the default.
+        depend :
+            Use the value of this feature as the default.
+        rc :
+            Use the value of this rcParam as the default.
 
-        self.val = val
-        self.depend = depend
-        self.rc = rc
+        """
+        if depend is not None:
+            assert depend in SEMANTICS
+        if rc is not None:
+            assert rc in mpl.rcParams
 
-        # TODO some sort of smart=True default to indicate that default value is
-        # dependent the specific plot?
+        self._val = val
+        self._rc = rc
+        self._depend = depend
 
     def __repr__(self):
-
+        """Nice formatting for when object appears in Mark init signature."""
         if self.val is not None:
             s = f"<{repr(self.val)}>"
         elif self.depend is not None:
@@ -54,32 +61,41 @@ class Feature:
         return s
 
     @property
-    def default(self) -> Any:
-        if self.val is not None:
-            return self.val
-        return mpl.rcParams.get(self.rc)
+    def depend(self) -> Any:
+        """Return the name of the feature to source a default value from."""
+        return self._depend
 
-    # TODO make immutable, this gets cached in docstrings
-    # TODO nice str/repr for docstring
+    @property
+    def default(self) -> Any:
+        """Get the default value for this feature, or access the relevant rcParam."""
+        if self._val is not None:
+            return self._val
+        return mpl.rcParams.get(self._rc)
 
 
 class Mark:
-    """Base class for objects that control the actual plotting."""
     # TODO where to define vars we always group by (col, row, group)
     default_stat: Type[Stat] | None = None
     grouping_vars: list[str] = []
     requires: list[str]  # List of variabes that must be defined
-    supports: list[str]  # List of variables that will be used
+    supports: list[str]  # TODO can probably derive this from Features now, no?
     features: dict[str, Any]
 
     def __init__(self, **kwargs: Any):
-
+        """Base class for objects that control the actual plotting."""
         self.features = {}
         self._kwargs = kwargs
 
     @contextmanager
-    def use(self, mappings, orient) -> Generator:
-
+    def use(
+        self,
+        mappings: dict[str, SemanticMapping],
+        orient: Literal["x", "y"]
+    ) -> Generator:
+        """Temporarily attach a mappings dict and orientation during plotting."""
+        # Having this allows us to simplify the number of objects that need to be
+        # passed all the way down to where plotting happens while not (permanently)
+        # mutating a Mark object that may persist in user-space.
         self.mappings = mappings
         self.orient = orient
         try:
@@ -89,10 +105,26 @@ class Mark:
 
     def _resolve(
         self,
-        data: DataFrame | dict,
+        data: DataFrame | dict[str, Any],
         name: str,
     ) -> Any:
+        """Obtain default, specified, or mapped value for a named feature.
 
+        Parameters
+        ----------
+        data :
+            Container with data values for features that will be semantically mapped.
+        name :
+            Identity of the feature / semantic.
+
+        Returns
+        -------
+        value or array of values
+            Outer return type depends on whether `data` is a dict (implying that
+            we want a single value) or DataFrame (implying that we want an array
+            of values with matching length).
+
+        """
         feature = self.features[name]
         standardize = SEMANTICS[name]._standardize_value
         directly_specified = not isinstance(feature, Feature)
@@ -107,9 +139,8 @@ class Mark:
             return np.asarray(self.mappings[name](data[name]))
 
         if feature.depend is not None:
-            # TODO add source_func or similar to transform the source value
-            # e.g. set linewidth by pointsize or extract alpha value from color
-            # (latter suggests a new concept: "second-order" features/semantics)
+            # TODO add source_func or similar to transform the source value?
+            # e.g. set linewidth as a proportion of pointsize?
             return self._resolve(data, feature.depend)
 
         default = standardize(feature.default)
@@ -122,18 +153,34 @@ class Mark:
         data: DataFrame | dict,
         prefix: str = "",
     ) -> RGBATuple | ndarray:
+        """Obtain a default, specified, or mapped value for a color feature.
 
+        This method exists separately to support the relationship between a
+        color and its corresponding alpha. We want to respect alpha values that
+        are passed in specified (or mapped) color values but also make use of a
+        separate `alpha` variable, which can be mapped. This approach may also
+        be extended to support mapping of specific color channels (i.e.
+        luminance, chroma) in the future.
+
+        Parameters
+        ----------
+        data :
+            Container with data values for features that will be semantically mapped.
+        prefix :
+            Support "color", "fillcolor", etc.
+
+        """
         color = self._resolve(data, f"{prefix}color")
         alpha = self._resolve(data, f"{prefix}alpha")
 
         if isinstance(color, tuple):
-            if len(color) == 3:
-                return mpl.colors.to_rgba(color, alpha)
-            return mpl.colors.to_rgba(color)
+            if len(color) == 4:
+                return mpl.colors.to_rgba(color)
+            return mpl.colors.to_rgba(color, alpha)
         else:
-            if color.shape[1] == 3:
-                return mpl.colors.to_rgba_array(color, alpha)
-            return mpl.colors.to_rgba_array(color)
+            if color.shape[1] == 4:
+                return mpl.colors.to_rgba_array(color)
+            return mpl.colors.to_rgba_array(color, alpha)
 
     def _adjust(
         self,
@@ -142,7 +189,7 @@ class Mark:
 
         return df
 
-    def _infer_orient(self, scales: dict) -> Literal["x", "y"]:  # TODO type scale
+    def _infer_orient(self, scales: dict) -> Literal["x", "y"]:  # TODO type scales
 
         # TODO The original version of this (in seaborn._oldcore) did more checking.
         # Paring that down here for the prototype to see what restrictions make sense.
