@@ -228,9 +228,16 @@ class Mark:
         split_generator: Callable[[], Generator],
     ) -> None:
         """Main interface for creating a plot."""
+        axes_cache = set()
         for keys, data, ax in split_generator():
             kws = self._kwargs.copy()
             self._plot_split(keys, data, ax, kws)
+            axes_cache.add(ax)
+
+        # TODO what is the best way to do this a minimal number of times?
+        # Probably can be moved out to Plot?
+        for ax in axes_cache:
+            ax.autoscale_view()
 
         self._finish_plot()
 
