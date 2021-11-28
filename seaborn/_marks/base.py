@@ -128,15 +128,19 @@ class Mark:
         feature = self.features[name]
         standardize = SEMANTICS[name]._standardize_value
         directly_specified = not isinstance(feature, Feature)
+        return_array = isinstance(data, pd.DataFrame)
 
         if directly_specified:
             feature = standardize(feature)
-            if isinstance(data, pd.DataFrame):
+            if return_array:
                 feature = np.array([feature] * len(data))
             return feature
 
         if name in data:
-            return np.asarray(self.mappings[name](data[name]))
+            feature = self.mappings[name](data[name])
+            if return_array:
+                feature = np.asarray(feature)
+            return feature
 
         if feature.depend is not None:
             # TODO add source_func or similar to transform the source value?
@@ -144,7 +148,7 @@ class Mark:
             return self._resolve(data, feature.depend)
 
         default = standardize(feature.default)
-        if isinstance(data, pd.DataFrame):
+        if return_array:
             default = np.array([default] * len(data))
         return default
 
@@ -153,7 +157,8 @@ class Mark:
         data: DataFrame | dict,
         prefix: str = "",
     ) -> RGBATuple | ndarray:
-        """Obtain a default, specified, or mapped value for a color feature.
+        """
+        Obtain a default, specified, or mapped value for a color feature.
 
         This method exists separately to support the relationship between a
         color and its corresponding alpha. We want to respect alpha values that
