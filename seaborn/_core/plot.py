@@ -519,6 +519,7 @@ class Plot:
         # with figsize when only one is defined?
 
         # TODO figsize has no actual effect here
+        self._figsize = figsize
 
         subplot_keys = ["sharex", "sharey"]
         for key in subplot_keys:
@@ -573,6 +574,9 @@ class Plot:
         return plotter
 
     def show(self, **kwargs) -> None:
+
+        # TODO make pyplot configurable at the class level, and when not using,
+        # import IPython.display and call on self to populate cell output?
 
         # Keep an eye on whether matplotlib implements "attaching" an existing
         # figure to pyplot: https://github.com/matplotlib/matplotlib/pull/14024
