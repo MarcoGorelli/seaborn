@@ -137,7 +137,11 @@ class Mark:
             return feature
 
         if name in data:
-            feature = self.mappings[name](data[name])
+            if name in self.mappings:
+                feature = self.mappings[name](data[name])
+            else:
+                # TODO Might this obviate the identity scale? Just don't add a mapping?
+                feature = data[name]
             if return_array:
                 feature = np.asarray(feature)
             return feature

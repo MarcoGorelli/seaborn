@@ -22,6 +22,7 @@ from seaborn._core.mappings import (
     LineWidthSemantic,
     AlphaSemantic,
     PointSizeSemantic,
+    WidthSemantic,
     IdentityMapping,
 )
 from seaborn._core.scales import (
@@ -67,6 +68,7 @@ SEMANTICS = {  # TODO should this be pluggable?
     "linestyle": LineStyleSemantic(),
     "linewidth": LineWidthSemantic(),
     "pointsize": PointSizeSemantic(),
+    "width": WidthSemantic(),
 }
 
 
