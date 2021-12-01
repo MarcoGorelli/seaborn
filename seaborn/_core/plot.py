@@ -878,6 +878,9 @@ class Plotter:
                 scale.type_declared = False
 
             if isinstance(scale, IdentityScale):
+                # We may not need this dummy mapping, if we can consistently
+                # use Mark.resolve to pull values out of data if not defined in mappings
+                # Not doing that now because it breaks some tests, but seems to work.
                 mapping = IdentityMapping(semantic._standardize_values)
             else:
                 mapping = semantic.setup(all_values, scale)

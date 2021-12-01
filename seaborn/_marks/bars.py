@@ -45,6 +45,9 @@ class Bar(Mark):
         # a) mappings
         # b) "scalar" mappings
         # c) Bar constructor kws?
+        # TODO see new resolve functionality. I think we can use that. But there
+        # still could be more sanity here. Basically marks need some way of defining
+        # defaults that need to be added to data rather than just resolved at plot time.
         defaults = {"baseline": 0, "width": .8}
         df = df.assign(**{k: v for k, v in defaults.items() if k not in df})
         # TODO should the above stuff happen somewhere else?
