@@ -13,8 +13,9 @@ class Bar(Mark):
         color=Feature("C0"),
         alpha=Feature(1),
         fill=Feature(True),
-        width=Feature(.8),
         pattern=Feature(),
+        width=Feature(.8),
+        baseline=0,
         multiple=None,
         **kwargs,  # specify mpl kwargs? Not be a catchall?
     ):
@@ -25,11 +26,18 @@ class Bar(Mark):
             color=color,
             alpha=alpha,
             fill=fill,
-            width=width,
             pattern=pattern,
+            width=width,
         )
 
-        self._multiple = multiple
+        # Unclear whether baseline should be a Feature, and hence make it possible
+        # to pass a different baseline for each bar. The produces a kind of plot one
+        # can make ... but maybe it should be a different plot? The main reason to
+        # avoid is that it is unclear whether we want to introduce a "BaselineSemantic".
+        # Revisit this question if we have need for other Feature variables that do not
+        # really make sense as "semantics".
+        self.baseline = baseline
+        self.multiple = multiple
 
     def _adjust(self, df):
 
@@ -39,33 +47,22 @@ class Bar(Mark):
         else:
             pos, val = "xy"
 
-        # First augment the df with the other mappings we need: width and baseline
-        # Question: do we want "ymin/ymax" or "baseline/y"? Or "ymin/y"?
-        # Also note that these could be
-        # a) mappings
-        # b) "scalar" mappings
-        # c) Bar constructor kws?
-        # TODO see new resolve functionality. I think we can use that. But there
-        # still could be more sanity here. Basically marks need some way of defining
-        # defaults that need to be added to data rather than just resolved at plot time.
-        defaults = {"baseline": 0, "width": .8}
-        df = df.assign(**{k: v for k, v in defaults.items() if k not in df})
-        # TODO should the above stuff happen somewhere else?
+        # Initialize vales for bar shape/location parameterization
+        df = df.assign(
+            width=self._resolve(df, "width"),
+            baseline=self.baseline,
+        )
 
-        # Bail here if we don't actually need to adjust anything?
-        # TODO filter mappings externally?
-        # TODO disablings second condition until we figure out what to do with group
-        if self._multiple is None:  # or not mappings:
+        if self.multiple is None:
             return df
 
         # Now we need to know the levels of the grouping variables, hmmm.
         # Should `_plot_layer` pass that in here?
-        # TODO prototyping with color, this needs some real thinking!
         # TODO maybe instead of that we have the dataframe sorted by categorical order?
 
         # Adjust as appropriate
         # TODO currently this does not check that it is necessary to adjust!
-        if self._multiple.startswith("dodge"):
+        if self.multiple.startswith("dodge"):
 
             # TODO this is pretty general so probably doesn't need to be in Bar.
             # but it will require a lot of work to fix up, especially related to
@@ -79,7 +76,7 @@ class Bar(Mark):
             # The dodge/dodgefill thing is a provisional idea
 
             width_by_pos = df.groupby(pos, sort=False)["width"]
-            if self._multiple == "dodgefill":  # Not great name given other "fill"
+            if self.multiple == "dodgefill":  # Not great name given other "fill"
                 # TODO e.g. what should we do here with empty categories?
                 # is it too confusing if we appear to ignore "dodgefill",
                 # or is it inconsistent with behavior elsewhere?
@@ -115,8 +112,8 @@ class Bar(Mark):
     def _plot_split(self, keys, data, ax, kws):
 
         x, y = data[["x", "y"]].to_numpy().T
-        b = data["baseline"]  # TODO is this resolved? what are we doing here?
-        w = self._resolve(data, "width")
+        b = data["baseline"]
+        w = data["width"]
 
         if self.orient == "x":
             w, h = w, y - b
@@ -141,4 +138,4 @@ class Bar(Mark):
             ax.add_patch(bar)
             bars.append(bar)
 
-        # TODO add container
+        # TODO add container object to ax, line ax.bar does

@@ -68,6 +68,11 @@ SEMANTICS = {  # TODO should this be pluggable?
     "linestyle": LineStyleSemantic(),
     "linewidth": LineWidthSemantic(),
     "pointsize": PointSizeSemantic(),
+
+    # TODO we use this dictionary to access the standardize_value method
+    # in Mark.resolve, even though these are not really "semantics" as such
+    # (or are they?); we might want to introduce a different concept?
+    # Maybe call this VARIABLES and have e.g. ColorSemantic, BaselineVariable?
     "width": WidthSemantic(),
 }
 
