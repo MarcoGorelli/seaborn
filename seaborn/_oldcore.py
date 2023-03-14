@@ -114,9 +114,10 @@ class HueMapping(SemanticMapping):
         """
         super().__init__(plotter)
 
-        data = plotter.plot_data.get("hue", pd.Series(dtype=float))
+        # data = plotter.plot_data.get("hue", pd.Series(dtype=float))
+        data = plotter.plot_data.get_column_by_name("hue")
 
-        if data.isna().all():
+        if data.is_null().all():
             if palette is not None:
                 msg = "Ignoring `palette` because no `hue` variable has been assigned."
                 warnings.warn(msg, stacklevel=4)
@@ -305,7 +306,10 @@ class SizeMapping(SemanticMapping):
         """
         super().__init__(plotter)
 
-        data = plotter.plot_data.get("size", pd.Series(dtype=float))
+        try:
+            data = plotter.plot_data.get_column_by_name("size")
+        except KeyError:
+            return
 
         if data.notna().any():
 
@@ -528,9 +532,12 @@ class StyleMapping(SemanticMapping):
         """
         super().__init__(plotter)
 
-        data = plotter.plot_data.get("style", pd.Series(dtype=float))
+        try:
+            data = plotter.plot_data.get_column_by_name("style")
+        except KeyError:
+            return
 
-        if data.notna().any():
+        if data.not_null().any():
 
             # Cast to list to handle numpy/pandas datetime quirks
             if variable_type(data) == "datetime":
@@ -700,12 +707,11 @@ class VectorPlotter:
             plot_data, variables = self._assign_variables_longform(
                 data, **variables,
             )
-
         self.plot_data = plot_data
         self.variables = variables
         self.var_types = {
             v: variable_type(
-                plot_data[v],
+                plot_data.get_column_by_name(v),
                 boolean_type="numeric" if v in "xy" else "categorical"
             )
             for v in variables
@@ -744,7 +750,7 @@ class VectorPlotter:
             raise ValueError(err)
 
         # Determine if the data object actually has any data in it
-        empty = data is None or not len(data)
+        empty = data is None or not data.shape[0]
 
         # Then, determine if we have "flat" data (a single vector)
         if isinstance(data, dict):
@@ -924,7 +930,7 @@ class VectorPlotter:
                 # We know that __getitem__ will work
 
                 if val in data:
-                    plot_data[key] = data[val]
+                    plot_data[key] = data.get_column_by_name(val).value
                 elif val in index:
                     plot_data[key] = index[val]
                 variables[key] = val
@@ -958,13 +964,14 @@ class VectorPlotter:
 
         # Construct a tidy plot DataFrame. This will convert a number of
         # types automatically, aligning on index in case of pandas objects
-        plot_data = pd.DataFrame(plot_data)
+        from dataframe_standard  import dataframe_standard  # hack!
+        plot_data = dataframe_standard(pd.DataFrame(plot_data))
 
         # Reduce the variables dictionary to fields with valid data
         variables = {
             var: name
             for var, name in variables.items()
-            if plot_data[var].notnull().any()
+            if plot_data.get_column_by_name(var).not_null().any()
         }
 
         return plot_data, variables
@@ -1495,7 +1502,8 @@ def variable_type(vector, boolean_type="numeric"):
         return VariableType("categorical")
 
     # Special-case all-na data, which is always "numeric"
-    if pd.isna(vector).all():
+    # if pd.isna(vector).all():
+    if vector.is_null().all():
         return VariableType("numeric")
 
     # Special-case binary/boolean data, allow caller to determine
@@ -1525,6 +1533,7 @@ def variable_type(vector, boolean_type="numeric"):
     # Check for a collection where everything is a number
 
     def all_numeric(x):
+        # TODO need to fix this, can't iterate over elements!
         for x_i in x:
             if not isinstance(x_i, Number):
                 return False

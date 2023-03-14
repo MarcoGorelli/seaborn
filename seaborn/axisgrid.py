@@ -393,14 +393,14 @@ class FacetGrid(Grid):
         if col is None:
             col_names = []
         else:
-            col_names = categorical_order(data[col], col_order)
+            col_names = categorical_order(data.get_column_by_name(col), col_order)
 
         # Additional dict of kwarg -> list of values for mapping the hue var
         hue_kws = hue_kws if hue_kws is not None else {}
 
         # Make a boolean mask that is True anywhere there is an NA
         # value in one of the faceting variables, but only if dropna is True
-        none_na = np.zeros(len(data), bool)
+        none_na = np.zeros(data.shape[0], bool)
         if dropna:
             row_na = none_na if row is None else data[row].isnull()
             col_na = none_na if col is None else data[col].isnull()
@@ -653,11 +653,11 @@ class FacetGrid(Grid):
         if self.row_names:
             row_masks = [data[self._row_var] == n for n in self.row_names]
         else:
-            row_masks = [np.repeat(True, len(self.data))]
+            row_masks = [np.repeat(True, self.data.shape[0])]
 
         # Construct masks for the column variable
         if self.col_names:
-            col_masks = [data[self._col_var] == n for n in self.col_names]
+            col_masks = [data.get_column_by_name(self._col_var) == n for n in self.col_names]
         else:
             col_masks = [np.repeat(True, len(self.data))]
 
@@ -665,13 +665,13 @@ class FacetGrid(Grid):
         if self.hue_names:
             hue_masks = [data[self._hue_var] == n for n in self.hue_names]
         else:
-            hue_masks = [np.repeat(True, len(self.data))]
+            hue_masks = [np.repeat(True, self.data.shape[0])]
 
         # Here is the main generator loop
         for (i, row), (j, col), (k, hue) in product(enumerate(row_masks),
                                                     enumerate(col_masks),
                                                     enumerate(hue_masks)):
-            data_ijk = data[row & col & hue & self._not_na]
+            data_ijk = data.get_rows_by_mask(row & col & hue & self._not_na)
             yield (i, j, k), data_ijk
 
     def map(self, func, *args, **kwargs):
@@ -792,7 +792,7 @@ class FacetGrid(Grid):
         for (row_i, col_j, hue_k), data_ijk in self.facet_data():
 
             # If this subset is null, move on
-            if not data_ijk.values.size:
+            if not data_ijk.shape[0]:
                 continue
 
             # Get the current axis
