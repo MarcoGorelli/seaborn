@@ -906,7 +906,6 @@ def relplot(
     # Rename the columns of the plot_data structure appropriately
     new_cols = plot_variables.copy()
     new_cols.update(grid_kws)
-    new_cols['row'] = 'row'  # HACK
     full_data = p.plot_data.rename(new_cols)
 
     # Set up the FacetGrid object

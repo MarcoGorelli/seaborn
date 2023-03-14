@@ -115,7 +115,10 @@ class HueMapping(SemanticMapping):
         super().__init__(plotter)
 
         # data = plotter.plot_data.get("hue", pd.Series(dtype=float))
-        data = plotter.plot_data.get_column_by_name("hue")
+        try:
+            data = plotter.plot_data.get_column_by_name("hue")
+        except KeyError:
+            return
 
         if data.is_null().all():
             if palette is not None:
@@ -930,7 +933,7 @@ class VectorPlotter:
                 # We know that __getitem__ will work
 
                 if val in data:
-                    plot_data[key] = data.get_column_by_name(val).value
+                    plot_data[key] = data.get_column_by_name(val)
                 elif val in index:
                     plot_data[key] = index[val]
                 variables[key] = val
@@ -1224,6 +1227,7 @@ class VectorPlotter:
         for var in axis_variables:
             other_var = {"x": "y", "y": "x"}[var]
 
+            breakpoint()
             converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
             share_state = getattr(self.facets, f"_share{var}", True)
 
