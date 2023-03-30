@@ -389,26 +389,29 @@ class _LinePlotter(_RelationalPlotter):
         grouping_vars = "hue", "size", "style"
         for sub_vars, sub_data in self.iter_data(grouping_vars, from_comp_data=True):
 
-            if self.sort:
+            if False and self.sort:
+                # TODO: do we need sorting methods?
                 sort_vars = ["units", orient, other]
                 sort_cols = [var for var in sort_vars if var in self.variables]
                 sub_data = sub_data.sort_values(sort_cols)
 
             if (
                 self.estimator is not None
-                and sub_data[orient].value_counts().max() > 1
+                # TODO reimplement value_counts?
+                and True#sub_data[orient].value_counts().max() > 1
             ):
                 if "units" in self.variables:
                     # TODO eventually relax this constraint
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
+                breakpoint()
                 grouped = sub_data.groupby(orient, sort=self.sort)
                 # Could pass as_index=False instead of reset_index,
                 # but that fails on a corner case with older pandas.
                 sub_data = grouped.apply(agg, other).reset_index()
             else:
-                sub_data[f"{other}min"] = np.nan
-                sub_data[f"{other}max"] = np.nan
+                sub_data.dataframe[f"{other}min"] = np.nan
+                sub_data.dataframe[f"{other}max"] = np.nan
 
             # TODO this is pretty ad hoc ; see GH2409
             for var in "xy":
@@ -423,7 +426,12 @@ class _LinePlotter(_RelationalPlotter):
                 for _, unit_data in sub_data.groupby("units"):
                     lines.extend(ax.plot(unit_data["x"], unit_data["y"], **kws))
             else:
-                lines = ax.plot(sub_data["x"], sub_data["y"], **kws)
+                breakpoint()
+                lines = ax.plot(
+                    sub_data.get_column_by_name("x").to_iterable(),
+                    sub_data.get_column_by_name("y").to_iterable(),
+                    **kws,
+                )
 
             for line in lines:
 
