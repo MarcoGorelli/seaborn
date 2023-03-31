@@ -1115,15 +1115,9 @@ class VectorPlotter:
         if not hasattr(self, "_comp_data"):
 
             comp_data = self.plot_data
-            breakpoint()
             for _var in ('x', 'y'):
                 if _var in comp_data.get_column_names():
                     comp_data = comp_data.drop_column(_var)
-            # comp_data = (
-            #     self.plot_data
-            #     # .copy(deep=False)
-            #     .drop_columns(["x", "y"])#, axis=1, errors="ignore")
-            # )
 
             for var in "yx":
                 if var not in self.variables:
@@ -1131,25 +1125,25 @@ class VectorPlotter:
 
                 parts = []
                 # TODO need to handle converters
-                if False:
-                    grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-                    for converter, orig in grouped:
-                        with pd.option_context('mode.use_inf_as_na', True):
-                            orig = orig.dropna()
-                            if var in self.var_levels:
-                                # TODO this should happen in some centralized location
-                                # it is similar to GH2419, but more complicated because
-                                # supporting `order` in categorical plots is tricky
-                                orig = orig[orig.isin(self.var_levels[var])]
-                        comp = pd.to_numeric(converter.convert_units(orig))
-                        if converter.get_scale() == "log":
-                            comp = np.log10(comp)
-                        parts.append(pd.Series(comp, orig.index, name=orig.name))
-                    if parts:
-                        comp_col = pd.concat(parts)
-                    else:
-                        comp_col = pd.Series(dtype=float, name=var)
-                    comp_data.insert(0, var, comp_col)
+                breakpoint()
+                grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
+                for converter, orig in grouped:
+                    with pd.option_context('mode.use_inf_as_na', True):
+                        orig = orig.dropna()
+                        if var in self.var_levels:
+                            # TODO this should happen in some centralized location
+                            # it is similar to GH2419, but more complicated because
+                            # supporting `order` in categorical plots is tricky
+                            orig = orig[orig.isin(self.var_levels[var])]
+                    comp = pd.to_numeric(converter.convert_units(orig))
+                    if converter.get_scale() == "log":
+                        comp = np.log10(comp)
+                    parts.append(pd.Series(comp, orig.index, name=orig.name))
+                if parts:
+                    comp_col = pd.concat(parts)
+                else:
+                    comp_col = pd.Series(dtype=float, name=var)
+                comp_data.insert(0, var, comp_col)
 
             self._comp_data = comp_data
         breakpoint()
