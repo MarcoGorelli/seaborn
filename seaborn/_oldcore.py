@@ -1231,52 +1231,54 @@ class VectorPlotter:
         # - uses .loc[:] (to make a copy?)
         # - groups by something not in the dataframe
         # - constructs a series
-        if False:
-            for var in axis_variables:
-                other_var = {"x": "y", "y": "x"}[var]
+        for var in axis_variables:
+            other_var = {"x": "y", "y": "x"}[var]
 
-                converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
-                share_state = getattr(self.facets, f"_share{var}", True)
+            # converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
+            share_state = getattr(self.facets, f"_share{var}", True)
 
-                # Simplest cases are that we have a single axes, all axes are shared,
-                # or sharing is only on the orthogonal facet dimension. In these cases,
-                # all datapoints get converted the same way, so use the first axis
-                if share_state is True or share_state == facet_dim[other_var]:
-                    converter.loc[:] = getattr(ax_list[0], f"{var}axis")
+            # Simplest cases are that we have a single axes, all axes are shared,
+            # or sharing is only on the orthogonal facet dimension. In these cases,
+            # all datapoints get converted the same way, so use the first axis
+            if share_state is True or share_state == facet_dim[other_var]:
+                # converter.loc[:] = getattr(ax_list[0], f"{var}axis")
+                converter_arr = np.array([hash(ax_list[0])]*self.plot_data.shape[0])
+                converter = self.plot_data.column_class.from_array(converter_arr)
 
+            else:
+
+                # Next simplest case is when no axes are shared, and we can
+                # use the axis objects within each facet
+                if share_state is False:
+                    for axes_vars, axes_data in self.iter_data():
+                        ax = self._get_axes(axes_vars)
+                        converter.loc[axes_data.index] = getattr(ax, f"{var}axis")
+
+                # In the more complicated case, the axes are shared within each
+                # "file" of the facetgrid. In that case, we need to subset the data
+                # for that file and assign it the first axis in the slice of the grid
                 else:
 
-                    # Next simplest case is when no axes are shared, and we can
-                    # use the axis objects within each facet
-                    if share_state is False:
-                        for axes_vars, axes_data in self.iter_data():
-                            ax = self._get_axes(axes_vars)
-                            converter.loc[axes_data.index] = getattr(ax, f"{var}axis")
+                    names = getattr(self.facets, f"{share_state}_names")
+                    for i, level in enumerate(names):
+                        idx = (i, 0) if share_state == "row" else (0, i)
+                        axis = getattr(self.facets.axes[idx], f"{var}axis")
+                        converter.loc[self.plot_data[share_state] == level] = axis
 
-                    # In the more complicated case, the axes are shared within each
-                    # "file" of the facetgrid. In that case, we need to subset the data
-                    # for that file and assign it the first axis in the slice of the grid
+            # Store the converter vector, which we use elsewhere (e.g comp_data)
+            self.converters[var] = converter
+
+            # Now actually update the matplotlib objects to do the conversion we want
+            breakpoint()
+            grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
+            for converter, seed_data in grouped:
+                if self.var_types[var] == "categorical":
+                    if self._var_ordered[var]:
+                        order = self.var_levels[var]
                     else:
-
-                        names = getattr(self.facets, f"{share_state}_names")
-                        for i, level in enumerate(names):
-                            idx = (i, 0) if share_state == "row" else (0, i)
-                            axis = getattr(self.facets.axes[idx], f"{var}axis")
-                            converter.loc[self.plot_data[share_state] == level] = axis
-
-                # Store the converter vector, which we use elsewhere (e.g comp_data)
-                self.converters[var] = converter
-
-                # Now actually update the matplotlib objects to do the conversion we want
-                grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-                for converter, seed_data in grouped:
-                    if self.var_types[var] == "categorical":
-                        if self._var_ordered[var]:
-                            order = self.var_levels[var]
-                        else:
-                            order = None
-                        seed_data = categorical_order(seed_data, order)
-                    converter.update_units(seed_data)
+                        order = None
+                    seed_data = categorical_order(seed_data, order)
+                converter.update_units(seed_data)
 
         # -- Set numerical axis scales
 
