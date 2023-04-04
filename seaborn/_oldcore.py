@@ -1125,28 +1125,31 @@ class VectorPlotter:
 
                 parts = []
                 # TODO need to handle converters
-                breakpoint()
-                grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-                for converter, orig in grouped:
-                    with pd.option_context('mode.use_inf_as_na', True):
-                        orig = orig.dropna()
-                        if var in self.var_levels:
-                            # TODO this should happen in some centralized location
-                            # it is similar to GH2419, but more complicated because
-                            # supporting `order` in categorical plots is tricky
-                            orig = orig[orig.isin(self.var_levels[var])]
-                    comp = pd.to_numeric(converter.convert_units(orig))
-                    if converter.get_scale() == "log":
-                        comp = np.log10(comp)
-                    parts.append(pd.Series(comp, orig.index, name=orig.name))
+                # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
+                tmp = self.plot_data.insert(self.plot_data.shape[1], f'tmp_{var}', self.converters[var])
+                grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
+                for (converter_label,), orig in grouped:
+                    # converter = self.converter_dict[converter_label]
+                    # TODO!
+                    # with pd.option_context('mode.use_inf_as_na', True):
+                    #     orig = orig.dropna()
+                    #     if var in self.var_levels:
+                    #         # TODO this should happen in some centralized location
+                    #         # it is similar to GH2419, but more complicated because
+                    #         # supporting `order` in categorical plots is tricky
+                    #         orig = orig[orig.isin(self.var_levels[var])]
+                    # comp = pd.to_numeric(converter.convert_units(orig))
+                    # if converter.get_scale() == "log":
+                    #     comp = np.log10(comp)
+                    orig = orig.dataframe[var]
+                    parts.append(pd.Series(orig, orig.index, name=orig.name))
                 if parts:
-                    comp_col = pd.concat(parts)
+                    comp_col = self.plot_data.column_class(pd.concat(parts))
                 else:
                     comp_col = pd.Series(dtype=float, name=var)
                 comp_data.insert(0, var, comp_col)
 
             self._comp_data = comp_data
-        breakpoint()
         return self._comp_data
 
     def _get_axes(self, sub_vars):
@@ -1235,7 +1238,7 @@ class VectorPlotter:
             other_var = {"x": "y", "y": "x"}[var]
 
             # converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
-            converter_dict = {}
+            self.converter_dict = {}
             share_state = getattr(self.facets, f"_share{var}", True)
 
             # Simplest cases are that we have a single axes, all axes are shared,
@@ -1243,9 +1246,10 @@ class VectorPlotter:
             # all datapoints get converted the same way, so use the first axis
             if share_state is True or share_state == facet_dim[other_var]:
                 # converter.loc[:] = getattr(ax_list[0], f"{var}axis")
-                converter_arr = np.array([hash(ax_list[0])]*self.plot_data.shape[0])
+                converter_element = getattr(ax_list[0], f"{var}axis")
+                converter_arr = np.array([hash(converter_element)]*self.plot_data.shape[0])
                 converter = self.plot_data.column_class.from_array(converter_arr)
-                converter_dict[hash(ax_list[0])] = ax_list[0]
+                self.converter_dict[hash(converter_element)] = converter_element
 
             else:
 
@@ -1271,15 +1275,17 @@ class VectorPlotter:
             self.converters[var] = converter
 
             # Now actually update the matplotlib objects to do the conversion we want
-            grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-            for converter, seed_data in grouped:
+            tmp = self.plot_data.insert(self.plot_data.shape[1], f'tmp_{var}', self.converters[var])
+            grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
+            # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
+            for (converter,), seed_data in grouped:
                 if self.var_types[var] == "categorical":
                     if self._var_ordered[var]:
                         order = self.var_levels[var]
                     else:
                         order = None
                     seed_data = categorical_order(seed_data, order)
-                converter.update_units(seed_data)
+                self.converter_dict[converter].update_units(seed_data.dataframe)  # TODO! illegal?
 
         # -- Set numerical axis scales
 
