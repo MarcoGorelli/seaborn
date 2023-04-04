@@ -1235,6 +1235,7 @@ class VectorPlotter:
             other_var = {"x": "y", "y": "x"}[var]
 
             # converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
+            converter_dict = {}
             share_state = getattr(self.facets, f"_share{var}", True)
 
             # Simplest cases are that we have a single axes, all axes are shared,
@@ -1244,6 +1245,7 @@ class VectorPlotter:
                 # converter.loc[:] = getattr(ax_list[0], f"{var}axis")
                 converter_arr = np.array([hash(ax_list[0])]*self.plot_data.shape[0])
                 converter = self.plot_data.column_class.from_array(converter_arr)
+                converter_dict[hash(ax_list[0])] = ax_list[0]
 
             else:
 
@@ -1269,7 +1271,6 @@ class VectorPlotter:
             self.converters[var] = converter
 
             # Now actually update the matplotlib objects to do the conversion we want
-            breakpoint()
             grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
             for converter, seed_data in grouped:
                 if self.var_types[var] == "categorical":
