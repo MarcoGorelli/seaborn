@@ -1037,6 +1037,8 @@ class VectorPlotter:
             data = self.comp_data
         else:
             data = self.plot_data
+        
+        breakpoint()
 
         if dropna:
             # TODO

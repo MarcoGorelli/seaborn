@@ -404,7 +404,9 @@ class _LinePlotter(_RelationalPlotter):
                     # TODO eventually relax this constraint
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
+                # sub_data is empty here though...that looks wrong?
                 breakpoint()
+                unique_values = sub_data.get_column_by_name(orient)
                 grouped = sub_data.groupby(orient, sort=self.sort)
                 # Could pass as_index=False instead of reset_index,
                 # but that fails on a corner case with older pandas.
