@@ -1126,7 +1126,7 @@ class VectorPlotter:
                 parts = []
                 # TODO need to handle converters
                 # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-                tmp = self.plot_data.insert(self.plot_data.shape[1], f'tmp_{var}', self.converters[var])
+                tmp = self.plot_data.insert(self.plot_data.shape()[1], f'tmp_{var}', self.converters[var])
                 grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
                 for (converter_label,), orig in grouped:
                     # converter = self.converter_dict[converter_label]
@@ -1247,7 +1247,7 @@ class VectorPlotter:
             if share_state is True or share_state == facet_dim[other_var]:
                 # converter.loc[:] = getattr(ax_list[0], f"{var}axis")
                 converter_element = getattr(ax_list[0], f"{var}axis")
-                converter_arr = np.array([hash(converter_element)]*self.plot_data.shape[0])
+                converter_arr = np.array([hash(converter_element)]*self.plot_data.shape()[0])
                 converter = self.plot_data.column_class.from_array(converter_arr)
                 self.converter_dict[hash(converter_element)] = converter_element
 
@@ -1275,7 +1275,7 @@ class VectorPlotter:
             self.converters[var] = converter
 
             # Now actually update the matplotlib objects to do the conversion we want
-            tmp = self.plot_data.insert(self.plot_data.shape[1], f'tmp_{var}', self.converters[var])
+            tmp = self.plot_data.insert(self.plot_data.shape()[1], f'tmp_{var}', self.converters[var])
             grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
             # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
             for (converter,), seed_data in grouped:
