@@ -1038,8 +1038,6 @@ class VectorPlotter:
         else:
             data = self.plot_data
         
-        breakpoint()
-
         if dropna:
             # TODO
             # data = data.dropna()
@@ -1120,7 +1118,7 @@ class VectorPlotter:
             for _var in ('x', 'y'):
                 if _var in comp_data.get_column_names():
                     comp_data = comp_data.drop_column(_var)
-
+            breakpoint()
             for var in "yx":
                 if var not in self.variables:
                     continue
@@ -1287,7 +1285,7 @@ class VectorPlotter:
                     else:
                         order = None
                     seed_data = categorical_order(seed_data, order)
-                self.converter_dict[converter].update_units(seed_data.dataframe)  # TODO! illegal?
+                self.converter_dict[converter].update_units(seed_data.dataframe)
 
         # -- Set numerical axis scales
 
