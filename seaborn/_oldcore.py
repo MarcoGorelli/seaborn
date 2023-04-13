@@ -1118,7 +1118,6 @@ class VectorPlotter:
             for _var in ('x', 'y'):
                 if _var in comp_data.get_column_names():
                     comp_data = comp_data.drop_column(_var)
-            breakpoint()
             for var in "yx":
                 if var not in self.variables:
                     continue
@@ -1147,7 +1146,7 @@ class VectorPlotter:
                     comp_col = self.plot_data.column_class(pd.concat(parts))
                 else:
                     comp_col = pd.Series(dtype=float, name=var)
-                comp_data.insert(0, var, comp_col)
+                comp_data = comp_data.insert(0, var, comp_col)
 
             self._comp_data = comp_data
         return self._comp_data

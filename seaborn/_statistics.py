@@ -479,13 +479,15 @@ class EstimateAggregator:
 
     def __call__(self, data, var):
         """Aggregate over `var` column of `data` with estimate and error interval."""
-        vals = data[var]
+        vals = data.get_column_by_name(var).to_array()
         if callable(self.estimator):
             # You would think we could pass to vals.agg, and yet:
             # https://github.com/mwaskom/seaborn/issues/2943
             estimate = self.estimator(vals)
         else:
-            estimate = vals.agg(self.estimator)
+            # todo!
+            # estimate = vals.agg(self.estimator)
+            estimate = getattr(vals, self.estimator)()
 
         # Options that produce no error bars
         if self.error_method is None:
@@ -513,7 +515,7 @@ class EstimateAggregator:
             boots = bootstrap(vals, units=units, func=self.estimator, **self.boot_kws)
             err_min, err_max = _percentile_interval(boots, self.error_level)
 
-        return pd.Series({var: estimate, f"{var}min": err_min, f"{var}max": err_max})
+        return data.column_class({var: estimate, f"{var}min": err_min, f"{var}max": err_max})
 
 
 def _percentile_interval(data, width):

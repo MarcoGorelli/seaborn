@@ -406,11 +406,18 @@ class _LinePlotter(_RelationalPlotter):
                     raise ValueError(err)
                 # sub_data is empty here though...that looks wrong?
                 breakpoint()
-                unique_values = sub_data.get_column_by_name(orient)
-                grouped = sub_data.groupby(orient, sort=self.sort)
+                unique_values = sub_data.get_column_by_name(orient).unique().to_array()
+                ret_chunks = {}
+                for _value in unique_values:
+                    mask = sub_data.get_column_by_name(orient) == _value
+                    _sub_data = sub_data.get_rows_by_mask(mask)
+                    ret_chunks[_value] = agg(_sub_data, other)._series
+                # grouped = sub_data.groupby(orient)
                 # Could pass as_index=False instead of reset_index,
                 # but that fails on a corner case with older pandas.
-                sub_data = grouped.apply(agg, other).reset_index()
+                # sub_data = grouped.apply(agg, other).reset_index()
+                breakpoint()
+                sub_data = sub_data.__class__(pd.concat(ret_chunks))
             else:
                 sub_data.dataframe[f"{other}min"] = np.nan
                 sub_data.dataframe[f"{other}max"] = np.nan
