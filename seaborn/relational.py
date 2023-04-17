@@ -411,14 +411,14 @@ class _LinePlotter(_RelationalPlotter):
                 for _value in unique_values:
                     mask = sub_data.get_column_by_name(orient) == _value
                     _sub_data = sub_data.get_rows_by_mask(mask)
-                    ret_chunks[_value] = agg(_sub_data, other)._series
+                    ret_chunks[_value] = agg(_sub_data, other)
                 # grouped = sub_data.groupby(orient)
                 # Could pass as_index=False instead of reset_index,
                 # but that fails on a corner case with older pandas.
                 # sub_data = grouped.apply(agg, other).reset_index()
                 # TODO! use the new concat
-                breakpoint()
-                sub_data = sub_data.__class__(pd.concat(ret_chunks))
+                # NEED to keep x in this somehow...
+                sub_data = sub_data.__class__(pd.concat([val.dataframe.set_axis([key]).rename_axis(orient).reset_index() for (key, val) in ret_chunks.items()]).sort_values(orient))
             else:
                 sub_data.dataframe[f"{other}min"] = np.nan
                 sub_data.dataframe[f"{other}max"] = np.nan
