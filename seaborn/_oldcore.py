@@ -119,7 +119,7 @@ class HueMapping(SemanticMapping):
         else:
             data = None
 
-        if data is None or data.isna().all():
+        if data is None or data.isnan().all():
             if palette is not None:
                 msg = "Ignoring `palette` because no `hue` variable has been assigned."
                 warnings.warn(msg, stacklevel=4)
@@ -539,7 +539,7 @@ class StyleMapping(SemanticMapping):
         else:
             return
 
-        if data.notna().any():
+        if ~data.isnan().all():
 
             # Cast to list to handle numpy/pandas datetime quirks
             if variable_type(data) == "datetime":
@@ -1066,7 +1066,7 @@ class VectorPlotter:
         if grouping_vars:
 
             grouped_data = data.groupby(
-                grouping_vars, sort=False, as_index=False
+                grouping_vars,
             )
 
             grouping_keys = []
@@ -1083,7 +1083,11 @@ class VectorPlotter:
                 pd_key = key[0] if len(key) == 1 else key
 
                 try:
-                    data_subset = grouped_data.get_group(pd_key)
+                    mask = data.get_column_by_name(grouping_vars[0]) == pd_key[0]
+                    for i, _ in enumerate(grouping_vars):
+                        mask &= data.get_column_by_name(grouping_vars[i])
+                    data_subset = data.get_rows_by_mask(mask)
+                    # data_subset = grouped_data.get_group(pd_key)
                 except KeyError:
                     # XXX we are adding this to allow backwards compatibility
                     # with the empty artists that old categorical plots would
@@ -1091,12 +1095,12 @@ class VectorPlotter:
                     # case this option could be removed
                     data_subset = data.loc[[]]
 
-                if data_subset.empty and not allow_empty:
+                if data_subset.shape()[0] == 0 and not allow_empty:
                     continue
 
                 sub_vars = dict(zip(grouping_vars, key))
 
-                yield sub_vars, data_subset.copy()
+                yield sub_vars, data_subset#.copy()
 
         else:
 
@@ -1536,7 +1540,7 @@ def variable_type(vector, boolean_type="numeric"):
         warnings.simplefilter(
             action='ignore', category=(FutureWarning, DeprecationWarning)
         )
-        if np.isin(vector, [0, 1, np.nan]).all():
+        if np.isin((vector[i] for i in range(len(vector))), [0, 1, np.nan]).all():
             return VariableType(boolean_type)
 
     # Defer to positive pandas tests
@@ -1556,14 +1560,14 @@ def variable_type(vector, boolean_type="numeric"):
                 return False
         return True
 
-    if all_numeric(vector.to_iterable()):
+    if all_numeric((vector[i] for i in range(len(vector)))):
         return VariableType("numeric")
 
     # Check for a collection where everything is a datetime
 
     def all_datetime(x):
-        for x_i in x:
-            if not isinstance(x_i, (datetime, np.datetime64)):
+        for i in range(len(x)):
+            if not isinstance(x[i], (datetime, np.datetime64)):
                 return False
         return True
 
@@ -1788,7 +1792,7 @@ def categorical_order(vector, order=None):
                     order = pd.unique(vector)
 
                 if variable_type(vector) == "numeric":
-                    order = np.sort(order)
+                    order = np.sort(order.to_array())
 
-        order = filter(pd.notnull, order)
+        order = [order[i] for i in range(len(order)) if pd.notnull(order[i])]
     return list(order)

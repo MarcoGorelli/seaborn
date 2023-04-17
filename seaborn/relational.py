@@ -394,18 +394,18 @@ class _LinePlotter(_RelationalPlotter):
                 sort_vars = ["units", orient, other]
                 sort_cols = [var for var in sort_vars if var in self.variables]
                 sub_data = sub_data.sort_values(sort_cols)
-
+            value_counts = sub_data.get_columns_by_name([orient]).groupby([orient]).size().get_column_by_name('size')
             if (
                 self.estimator is not None
                 # TODO reimplement value_counts?
-                and True#sub_data[orient].value_counts().max() > 1
+                and value_counts.max() > 1
+                # and sub_data[orient].value_counts().max() > 1
             ):
                 if "units" in self.variables:
                     # TODO eventually relax this constraint
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
                 # sub_data is empty here though...that looks wrong?
-                breakpoint()
                 unique_values = sub_data.get_column_by_name(orient).unique().to_array()
                 ret_chunks = {}
                 for _value in unique_values:
@@ -416,6 +416,7 @@ class _LinePlotter(_RelationalPlotter):
                 # Could pass as_index=False instead of reset_index,
                 # but that fails on a corner case with older pandas.
                 # sub_data = grouped.apply(agg, other).reset_index()
+                # TODO! use the new concat
                 breakpoint()
                 sub_data = sub_data.__class__(pd.concat(ret_chunks))
             else:
@@ -435,10 +436,9 @@ class _LinePlotter(_RelationalPlotter):
                 for _, unit_data in sub_data.groupby("units"):
                     lines.extend(ax.plot(unit_data["x"], unit_data["y"], **kws))
             else:
-                breakpoint()
                 lines = ax.plot(
-                    sub_data.get_column_by_name("x").to_iterable(),
-                    sub_data.get_column_by_name("y").to_iterable(),
+                    sub_data.get_column_by_name("x").to_array(),
+                    sub_data.get_column_by_name("y").to_array(),
                     **kws,
                 )
 
@@ -471,8 +471,8 @@ class _LinePlotter(_RelationalPlotter):
 
                     func = {"x": ax.fill_between, "y": ax.fill_betweenx}[orient]
                     func(
-                        sub_data[orient],
-                        sub_data[f"{other}min"], sub_data[f"{other}max"],
+                        sub_data.get_column_by_name(orient).to_array(),
+                        sub_data.get_column_by_name(f"{other}min").to_array(), sub_data.get_column_by_name(f"{other}max").to_array(),
                         color=line_color, **err_kws
                     )
 

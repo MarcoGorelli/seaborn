@@ -511,11 +511,14 @@ class EstimateAggregator:
         elif self.error_method == "pi":
             err_min, err_max = _percentile_interval(vals, self.error_level)
         elif self.error_method == "ci":
-            units = data.get("units", None)
+            if 'units' in data.get_column_names():
+                units = data.get_column_by_name('units')
+            else:
+                units = None
             boots = bootstrap(vals, units=units, func=self.estimator, **self.boot_kws)
             err_min, err_max = _percentile_interval(boots, self.error_level)
 
-        return data.column_class({var: estimate, f"{var}min": err_min, f"{var}max": err_max})
+        return data.column_class(pd.Series({var: estimate, f"{var}min": err_min, f"{var}max": err_max}))
 
 
 def _percentile_interval(data, width):
