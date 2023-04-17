@@ -397,15 +397,12 @@ class _LinePlotter(_RelationalPlotter):
             value_counts = sub_data.get_columns_by_name([orient]).groupby([orient]).size().get_column_by_name('size')
             if (
                 self.estimator is not None
-                # TODO reimplement value_counts?
                 and value_counts.max() > 1
-                # and sub_data[orient].value_counts().max() > 1
             ):
                 if "units" in self.variables:
                     # TODO eventually relax this constraint
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
-                # sub_data is empty here though...that looks wrong?
                 unique_values = sub_data.get_column_by_name(orient).unique().to_array()
                 ret_chunks = {}
                 for _value in unique_values:
@@ -436,9 +433,11 @@ class _LinePlotter(_RelationalPlotter):
                 for _, unit_data in sub_data.groupby("units"):
                     lines.extend(ax.plot(unit_data["x"], unit_data["y"], **kws))
             else:
+                x_col = sub_data.get_column_by_name("x")
+                y_col = sub_data.get_column_by_name("y")
                 lines = ax.plot(
-                    sub_data.get_column_by_name("x").to_array(),
-                    sub_data.get_column_by_name("y").to_array(),
+                    [x_col[i] for i in range(len(x_col))],
+                    [y_col[i] for i in range(len(y_col))],
                     **kws,
                 )
 
@@ -470,9 +469,13 @@ class _LinePlotter(_RelationalPlotter):
                 if self.err_style == "band":
 
                     func = {"x": ax.fill_between, "y": ax.fill_betweenx}[orient]
+                    orient_col = sub_data.get_column_by_name(orient).to_array()
+                    other_min_col = sub_data.get_column_by_name(f"{other}min").to_array()
+                    other_max_col = sub_data.get_column_by_name(f"{other}max").to_array()
                     func(
-                        sub_data.get_column_by_name(orient).to_array(),
-                        sub_data.get_column_by_name(f"{other}min").to_array(), sub_data.get_column_by_name(f"{other}max").to_array(),
+                        [orient_col[i] for i in range(len(orient_col))],
+                        [other_min_col[i] for i in range(len(other_min_col))],
+                        [other_max_col[i] for i in range(len(other_max_col))],
                         color=line_color, **err_kws
                     )
 

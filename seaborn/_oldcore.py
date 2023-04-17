@@ -1040,7 +1040,7 @@ class VectorPlotter:
             data = self.comp_data
         else:
             data = self.plot_data
-        
+
         if dropna:
             mask = ~data.isnan().any_rowwise()
             data = data.get_rows_by_mask(mask)
