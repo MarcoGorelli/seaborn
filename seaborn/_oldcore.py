@@ -119,8 +119,7 @@ class HueMapping(SemanticMapping):
         else:
             data = None
 
-        # TODO use isnull
-        if data is None or data.isnan().all():
+        if data is None or data.isnull().all():
             if palette is not None:
                 msg = "Ignoring `palette` because no `hue` variable has been assigned."
                 warnings.warn(msg, stacklevel=4)
@@ -540,7 +539,6 @@ class StyleMapping(SemanticMapping):
         else:
             return
 
-        # TODO use isnull
         if ~data.isnull().all():
 
             # Cast to list to handle numpy/pandas datetime quirks
@@ -975,8 +973,6 @@ class VectorPlotter:
         variables = {
             var: name
             for var, name in variables.items()
-            # if plot_data[var].notnull().any()
-            # TODO use isnull
             if not plot_data.get_column_by_name(var).isnull().all()
         }
 
