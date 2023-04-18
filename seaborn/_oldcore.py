@@ -1791,7 +1791,7 @@ def categorical_order(vector, order=None):
                     order = pd.unique(vector)
 
                 if variable_type(vector) == "numeric":
-                    order = np.sort(order.to_array())
+                    order = np.sort(order)
 
         order = [order[i] for i in range(len(order)) if pd.notnull(order[i])]
     return list(order)
