@@ -1083,9 +1083,8 @@ class VectorPlotter:
                 try:
                     mask = data.get_column_by_name(grouping_vars[0]) == pd_key[0]
                     for i, _ in enumerate(grouping_vars):
-                        mask &= data.get_column_by_name(grouping_vars[i])
+                        mask &= data.get_column_by_name(grouping_vars[i]) == pd_key[i]
                     data_subset = data.get_rows_by_mask(mask)
-                    # data_subset = grouped_data.get_group(pd_key)
                 except KeyError:
                     # XXX we are adding this to allow backwards compatibility
                     # with the empty artists that old categorical plots would
@@ -1098,11 +1097,11 @@ class VectorPlotter:
 
                 sub_vars = dict(zip(grouping_vars, key))
 
-                yield sub_vars, data_subset#.copy()
+                yield sub_vars, data_subset
 
         else:
 
-            yield {}, data#.copy()
+            yield {}, data
 
     @property
     def comp_data(self):
@@ -1125,8 +1124,6 @@ class VectorPlotter:
                     continue
 
                 parts = []
-                # TODO need to handle converters
-                # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
                 tmp_col = f'tmp_{var}'
                 tmp = self.plot_data.insert(self.plot_data.shape()[1], tmp_col, self.converters[var])
                 unique_converters = tmp.get_column_by_name(tmp_col).unique()
@@ -1156,6 +1153,7 @@ class VectorPlotter:
                 comp_data = comp_data.insert(0, var, comp_col)
 
             self._comp_data = comp_data
+
         return self._comp_data
 
     def _get_axes(self, sub_vars):
@@ -1236,14 +1234,9 @@ class VectorPlotter:
         facet_dim = {"x": "col", "y": "row"}
 
         self.converters = {}
-        # TODO: figure out how to support this. Issues:
-        # - uses .loc[:] (to make a copy?)
-        # - groups by something not in the dataframe
-        # - constructs a series
         for var in axis_variables:
             other_var = {"x": "y", "y": "x"}[var]
 
-            # converter = pd.Series(index=self.plot_data.index, name=var, dtype=object)
             self.converter_dict = {}
             share_state = getattr(self.facets, f"_share{var}", True)
 
@@ -1251,7 +1244,6 @@ class VectorPlotter:
             # or sharing is only on the orthogonal facet dimension. In these cases,
             # all datapoints get converted the same way, so use the first axis
             if share_state is True or share_state == facet_dim[other_var]:
-                # converter.loc[:] = getattr(ax_list[0], f"{var}axis")
                 converter_element = getattr(ax_list[0], f"{var}axis")
                 converter_arr = np.array([hash(converter_element)]*self.plot_data.shape()[0])
                 converter = self.plot_data.column_class.from_array(converter_arr)
@@ -1296,16 +1288,6 @@ class VectorPlotter:
                         order = None
                     seed_data = categorical_order(seed_data, order)
                 self.converter_dict[converter].update_units(seed_data.dataframe)
-
-            # grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
-            # for (converter,), seed_data in grouped:
-            #     if self.var_types[var] == "categorical":
-            #         if self._var_ordered[var]:
-            #             order = self.var_levels[var]
-            #         else:
-            #             order = None
-            #         seed_data = categorical_order(seed_data, order)
-            #     self.converter_dict[converter].update_units(seed_data.dataframe)
 
         # -- Set numerical axis scales
 
