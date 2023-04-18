@@ -404,20 +404,19 @@ class _LinePlotter(_RelationalPlotter):
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
                 unique_values = sub_data.get_column_by_name(orient).unique()
-                ret_chunks = {}
+                ret_chunks = []
                 for i in range(len(unique_values)):
                     _value = unique_values[i]
                     mask = sub_data.get_column_by_name(orient) == _value
                     _sub_data = sub_data.get_rows_by_mask(mask)
-                    ret_chunks[_value] = agg(_sub_data, other)
-                # grouped = sub_data.groupby(orient)
-                # Could pass as_index=False instead of reset_index,
-                # but that fails on a corner case with older pandas.
-                # sub_data = grouped.apply(agg, other).reset_index()
-                # TODO! use the new concat
-                # NEED to keep x in this somehow...
-                sub_data = sub_data.__class__(pd.concat([val.dataframe.set_axis([key]).rename_axis(orient).reset_index() for (key, val) in ret_chunks.items()]).sort_values(orient))
+                    ret_chunk = agg(_sub_data, other)
+                    ret_chunk[orient] = _value
+                    ret_chunks.append(ret_chunk)
+                sub_data = sub_data.__class__(pd.DataFrame(ret_chunks))
+                sorted_indices = sub_data.sorted_indices([orient])
+                sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
             else:
+                # TODO how to set a value in the Standard?
                 sub_data.dataframe[f"{other}min"] = np.nan
                 sub_data.dataframe[f"{other}max"] = np.nan
 
