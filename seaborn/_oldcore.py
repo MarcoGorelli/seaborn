@@ -1133,12 +1133,8 @@ class VectorPlotter:
                 for i in range(len(unique_converters)):
                     converter_label = unique_converters[i]
                     mask = tmp.get_column_by_name(tmp_col) == converter_label
-                    orig = tmp.get_rows_by_mask(mask).dataframe[var]
-                    parts.append(pd.Series(orig, orig.index, name=orig.name))
-
-                # grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
-                # for (converter_label,), orig in grouped:
-                    # converter = self.converter_dict[converter_label]
+                    orig = tmp.get_rows_by_mask(mask)
+                    parts.append(orig)
                     # TODO!
                     # with pd.option_context('mode.use_inf_as_na', True):
                     #     orig = orig.dropna()
@@ -1153,8 +1149,9 @@ class VectorPlotter:
                     # orig = orig.dataframe[var]
                     # parts.append(pd.Series(orig, orig.index, name=orig.name))
                 if parts:
-                    comp_col = self.plot_data.column_class(pd.concat(parts))
+                    comp_col = parts[0].concat(parts[1:]).get_column_by_name(var)
                 else:
+                    # TODO: what to do here?
                     comp_col = pd.Series(dtype=float, name=var)
                 comp_data = comp_data.insert(0, var, comp_col)
 
