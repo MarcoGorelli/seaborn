@@ -1127,9 +1127,17 @@ class VectorPlotter:
                 parts = []
                 # TODO need to handle converters
                 # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-                tmp = self.plot_data.insert(self.plot_data.shape()[1], f'tmp_{var}', self.converters[var])
-                grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
-                for (converter_label,), orig in grouped:
+                tmp_col = f'tmp_{var}'
+                tmp = self.plot_data.insert(self.plot_data.shape()[1], tmp_col, self.converters[var])
+                unique_converters = tmp.get_column_by_name(tmp_col).unique()
+                for i in range(len(unique_converters)):
+                    converter_label = unique_converters[i]
+                    mask = tmp.get_column_by_name(tmp_col) == converter_label
+                    orig = tmp.get_rows_by_mask(mask).dataframe[var]
+                    parts.append(pd.Series(orig, orig.index, name=orig.name))
+
+                # grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
+                # for (converter_label,), orig in grouped:
                     # converter = self.converter_dict[converter_label]
                     # TODO!
                     # with pd.option_context('mode.use_inf_as_na', True):
@@ -1142,8 +1150,8 @@ class VectorPlotter:
                     # comp = pd.to_numeric(converter.convert_units(orig))
                     # if converter.get_scale() == "log":
                     #     comp = np.log10(comp)
-                    orig = orig.dataframe[var]
-                    parts.append(pd.Series(orig, orig.index, name=orig.name))
+                    # orig = orig.dataframe[var]
+                    # parts.append(pd.Series(orig, orig.index, name=orig.name))
                 if parts:
                     comp_col = self.plot_data.column_class(pd.concat(parts))
                 else:
@@ -1276,10 +1284,14 @@ class VectorPlotter:
             self.converters[var] = converter
 
             # Now actually update the matplotlib objects to do the conversion we want
-            tmp = self.plot_data.insert(self.plot_data.shape()[1], f'tmp_{var}', self.converters[var])
-            grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
-            # grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
-            for (converter,), seed_data in grouped:
+            tmp_col = f'tmp_{var}'
+            tmp = self.plot_data.insert(self.plot_data.shape()[1], tmp_col, self.converters[var])
+
+            unique_converters = tmp.get_column_by_name(tmp_col).unique()
+            for i in range(len(unique_converters)):
+                converter = unique_converters[i]
+                mask = tmp.get_column_by_name(tmp_col) == converter
+                seed_data = tmp.get_rows_by_mask(mask)
                 if self.var_types[var] == "categorical":
                     if self._var_ordered[var]:
                         order = self.var_levels[var]
@@ -1287,6 +1299,16 @@ class VectorPlotter:
                         order = None
                     seed_data = categorical_order(seed_data, order)
                 self.converter_dict[converter].update_units(seed_data.dataframe)
+
+            # grouped = tmp.get_columns_by_name([var, f'tmp_{var}']).groupby([f'tmp_{var}'])
+            # for (converter,), seed_data in grouped:
+            #     if self.var_types[var] == "categorical":
+            #         if self._var_ordered[var]:
+            #             order = self.var_levels[var]
+            #         else:
+            #             order = None
+            #         seed_data = categorical_order(seed_data, order)
+            #     self.converter_dict[converter].update_units(seed_data.dataframe)
 
         # -- Set numerical axis scales
 
