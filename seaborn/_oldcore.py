@@ -541,7 +541,7 @@ class StyleMapping(SemanticMapping):
             return
 
         # TODO use isnull
-        if ~data.isnan().all():
+        if ~data.isnull().all():
 
             # Cast to list to handle numpy/pandas datetime quirks
             if variable_type(data) == "datetime":
@@ -977,7 +977,7 @@ class VectorPlotter:
             for var, name in variables.items()
             # if plot_data[var].notnull().any()
             # TODO use isnull
-            if not plot_data.get_column_by_name(var).isnan().all()
+            if not plot_data.get_column_by_name(var).isnull().all()
         }
 
         return plot_data, variables
@@ -1042,7 +1042,7 @@ class VectorPlotter:
             data = self.plot_data
 
         if dropna:
-            mask = ~data.isnan().any_rowwise()
+            mask = ~data.isnull().any_rowwise()
             data = data.get_rows_by_mask(mask)
 
         levels = self.var_levels.copy()
@@ -1527,7 +1527,7 @@ def variable_type(vector, boolean_type="numeric"):
         return VariableType("categorical")
 
     # Special-case all-na data, which is always "numeric"
-    if vector.isnan().all():
+    if vector.isnull().all():
         return VariableType("numeric")
 
     # Special-case binary/boolean data, allow caller to determine
