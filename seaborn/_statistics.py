@@ -517,7 +517,6 @@ class EstimateAggregator:
             err_min, err_max = _percentile_interval(boots, self.error_level)
 
         return {var: estimate, f"{var}min": err_min, f"{var}max": err_max}
-        # return data.column_class(pd.Series({var: estimate, f"{var}min": err_min, f"{var}max": err_max}))
 
 
 def _percentile_interval(data, width):
