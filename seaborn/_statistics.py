@@ -479,7 +479,7 @@ class EstimateAggregator:
 
     def __call__(self, data, var):
         """Aggregate over `var` column of `data` with estimate and error interval."""
-        vals = data.get_column_by_name(var).to_array()
+        vals = data.get_column_by_name(var)
         if callable(self.estimator):
             # You would think we could pass to vals.agg, and yet:
             # https://github.com/mwaskom/seaborn/issues/2943

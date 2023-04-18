@@ -403,9 +403,10 @@ class _LinePlotter(_RelationalPlotter):
                     # TODO eventually relax this constraint
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
-                unique_values = sub_data.get_column_by_name(orient).unique().to_array()
+                unique_values = sub_data.get_column_by_name(orient).unique()
                 ret_chunks = {}
-                for _value in unique_values:
+                for i in range(len(unique_values)):
+                    _value = unique_values[i]
                     mask = sub_data.get_column_by_name(orient) == _value
                     _sub_data = sub_data.get_rows_by_mask(mask)
                     ret_chunks[_value] = agg(_sub_data, other)
@@ -469,9 +470,9 @@ class _LinePlotter(_RelationalPlotter):
                 if self.err_style == "band":
 
                     func = {"x": ax.fill_between, "y": ax.fill_betweenx}[orient]
-                    orient_col = sub_data.get_column_by_name(orient).to_array()
-                    other_min_col = sub_data.get_column_by_name(f"{other}min").to_array()
-                    other_max_col = sub_data.get_column_by_name(f"{other}max").to_array()
+                    orient_col = sub_data.get_column_by_name(orient)
+                    other_min_col = sub_data.get_column_by_name(f"{other}min")
+                    other_max_col = sub_data.get_column_by_name(f"{other}max")
                     func(
                         [orient_col[i] for i in range(len(orient_col))],
                         [other_min_col[i] for i in range(len(other_min_col))],

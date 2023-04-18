@@ -59,7 +59,10 @@ def bootstrap(*args, **kwargs):
         rng = np.random.default_rng(seed)
 
     # Coerce to arrays
-    args = list(map(np.asarray, args))
+    def to_iterable(col):
+        return np.array([col[i] for i in range(len(col))])
+
+    args = [to_iterable(arg) for arg in args]
     if units is not None:
         units = np.asarray(units)
 
