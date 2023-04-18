@@ -389,11 +389,11 @@ class _LinePlotter(_RelationalPlotter):
         grouping_vars = "hue", "size", "style"
         for sub_vars, sub_data in self.iter_data(grouping_vars, from_comp_data=True):
 
-            if False and self.sort:
-                # TODO: do we need sorting methods?
+            if self.sort:
                 sort_vars = ["units", orient, other]
                 sort_cols = [var for var in sort_vars if var in self.variables]
-                sub_data = sub_data.sort_values(sort_cols)
+                sorted_indices = sub_data.sorted_indices(sort_cols)
+                sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
             value_counts = sub_data.get_columns_by_name([orient]).groupby([orient]).size().get_column_by_name('size')
             if (
                 self.estimator is not None
