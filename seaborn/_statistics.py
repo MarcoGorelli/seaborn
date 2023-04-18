@@ -485,8 +485,6 @@ class EstimateAggregator:
             # https://github.com/mwaskom/seaborn/issues/2943
             estimate = self.estimator(vals)
         else:
-            # todo!
-            # estimate = vals.agg(self.estimator)
             estimate = getattr(vals, self.estimator)()
 
         # Options that produce no error bars
