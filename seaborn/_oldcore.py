@@ -1246,7 +1246,7 @@ class VectorPlotter:
             if share_state is True or share_state == facet_dim[other_var]:
                 converter_element = getattr(ax_list[0], f"{var}axis")
                 converter_arr = np.array([hash(converter_element)]*self.plot_data.shape()[0])
-                converter = self.plot_data.column_class.from_array(converter_arr)
+                converter = self.plot_data.column_class.from_array(converter_arr, dtype='int')
                 self.converter_dict[hash(converter_element)] = converter_element
 
             else:

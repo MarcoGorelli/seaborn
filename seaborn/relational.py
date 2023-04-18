@@ -1,3 +1,4 @@
+from collections import defaultdict
 import warnings
 
 import numpy as np
@@ -404,15 +405,19 @@ class _LinePlotter(_RelationalPlotter):
                     err = "estimator must be None when specifying units"
                     raise ValueError(err)
                 unique_values = sub_data.get_column_by_name(orient).unique()
-                ret_chunks = []
+                dicts = defaultdict(list)
                 for i in range(len(unique_values)):
                     _value = unique_values[i]
-                    mask = sub_data.get_column_by_name(orient) == _value
-                    _sub_data = sub_data.get_rows_by_mask(mask)
-                    ret_chunk = agg(_sub_data, other)
-                    ret_chunk[orient] = _value
-                    ret_chunks.append(ret_chunk)
-                sub_data = sub_data.__class__(pd.DataFrame(ret_chunks))
+                    _mask = sub_data.get_column_by_name(orient) == _value
+                    _sub_data = sub_data.get_rows_by_mask(_mask)
+                    _aggregates = agg(_sub_data, other)
+                    _aggregates[orient] = _value
+                    for key, val in _aggregates.items():
+                        dicts[key].append(val)
+                sub_data = sub_data.from_dict({
+                    key: sub_data.column_class.from_array(np.array(val), dtype='float')
+                    for key, val in dicts.items()
+                })
                 sorted_indices = sub_data.sorted_indices([orient])
                 sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
             else:
