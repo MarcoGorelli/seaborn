@@ -13,7 +13,8 @@ from ._oldcore import VectorPlotter, variable_type, categorical_order
 from ._compat import share_axis, get_legend_handles
 from . import utils
 from .utils import (
-    adjust_legend_subtitles, _check_argument, _draw_figure, _disable_autolayout
+    adjust_legend_subtitles, _check_argument, _draw_figure, _disable_autolayout,
+    convert_to_pandas
 )
 from .palettes import color_palette, blend_palette
 from ._docstrings import (
@@ -494,7 +495,7 @@ class FacetGrid(Grid):
 
         # Public attributes that aren't explicitly documented
         # (It's not obvious that having them be public was a good idea)
-        self.data = data
+        self.data = convert_to_pandas(data)
         self.row_names = row_names
         self.col_names = col_names
         self.hue_names = hue_names
@@ -1291,7 +1292,7 @@ class PairGrid(Grid):
 
         self._figure = fig
         self.axes = axes
-        self.data = data
+        self.data = convert_to_pandas(data)
 
         # Save what we are going to do with the diagonal
         self.diag_sharey = diag_sharey

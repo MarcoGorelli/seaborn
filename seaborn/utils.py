@@ -882,3 +882,10 @@ def _disable_autolayout():
 def _version_predates(lib: ModuleType, version: str) -> bool:
     """Helper function for checking version compatibility."""
     return Version(lib.__version__) < Version(version)
+
+def convert_to_pandas(data: object) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame):
+        return data
+    elif hasattr(data, "__dataframe__"):
+        return pd.api.interchange.from_dataframe(data)
+    return pd.DataFrame(data)

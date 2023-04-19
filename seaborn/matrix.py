@@ -22,6 +22,7 @@ from .utils import (
     relative_luminance,
     to_utf8,
     _draw_figure,
+    convert_to_pandas,
 )
 
 
@@ -178,7 +179,7 @@ class _HeatMapper:
             annot = True
 
         # Save other attributes to the object
-        self.data = data
+        self.data = convert_to_pandas(data)
         self.plot_data = plot_data
 
         self.annot = annot
@@ -482,7 +483,7 @@ class _DendrogramPlotter:
             data = pd.DataFrame(array)
 
         self.array = array
-        self.data = data
+        self.data = convert_to_pandas(data)
 
         self.shape = self.data.shape
         self.metric = metric
@@ -702,10 +703,7 @@ class ClusterGrid(Grid):
         if _no_scipy:
             raise RuntimeError("ClusterGrid requires scipy to be available")
 
-        if isinstance(data, pd.DataFrame):
-            self.data = data
-        else:
-            self.data = pd.DataFrame(data)
+        self.data = convert_to_pandas(data)
 
         self.data2d = self.format_data(self.data, pivot_kws, z_score,
                                        standard_scale)
