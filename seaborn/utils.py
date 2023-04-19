@@ -1,4 +1,6 @@
 """Utility functions, mostly for internal use."""
+from __future__ import annotations
+
 import os
 import inspect
 import warnings
@@ -883,8 +885,11 @@ def _version_predates(lib: ModuleType, version: str) -> bool:
     """Helper function for checking version compatibility."""
     return Version(lib.__version__) < Version(version)
 
-def convert_to_pandas(data: object) -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame):
+
+def convert_to_pandas(data: object | None) -> pd.DataFrame:
+    if data is None:
+        return None
+    elif isinstance(data, pd.DataFrame):
         return data
     elif hasattr(data, "__dataframe__"):
         return pd.api.interchange.from_dataframe(data)
