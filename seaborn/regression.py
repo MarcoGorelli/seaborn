@@ -31,7 +31,7 @@ class _LinearPlotter:
     """
     def establish_variables(self, data, **kws):
         """Extract variables from data or use directly."""
-        self.data = utils.convert_to_pandas(data)
+        self.data = data
 
         # Validate the inputs
         any_strings = any([isinstance(v, str) for v in kws.values()])

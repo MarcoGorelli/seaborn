@@ -644,7 +644,8 @@ def load_dataset(name, cache=True, data_home=None, **kws):
     elif name == "dowjones":
         df["Date"] = pd.to_datetime(df["Date"])
 
-    return df
+    import polars as pl
+    return pl.from_pandas(df)
 
 
 def axis_ticklabels_overlap(labels):
@@ -886,7 +887,7 @@ def _version_predates(lib: ModuleType, version: str) -> bool:
     return Version(lib.__version__) < Version(version)
 
 
-def convert_to_pandas(data: object | None) -> pd.DataFrame:
+def try_convert_to_pandas(data: object | None) -> pd.DataFrame:
     if data is None:
         return None
     elif isinstance(data, pd.DataFrame):
