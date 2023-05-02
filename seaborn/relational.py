@@ -415,15 +415,17 @@ class _LinePlotter(_RelationalPlotter):
                     for key, val in _aggregates.items():
                         dicts[key].append(val)
                 sub_data = sub_data.from_dict({
-                    key: sub_data.column_class.from_array(np.array(val), dtype='float')
+                    key: sub_data.column_class.from_sequence(np.array(val), dtype='float')
                     for key, val in dicts.items()
                 })
                 sorted_indices = sub_data.sorted_indices([orient])
                 sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
             else:
                 # TODO how to set a value in the Standard?
-                sub_data.dataframe[f"{other}min"] = np.nan
-                sub_data.dataframe[f"{other}max"] = np.nan
+                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}min', sub_data.column_class.from_sequence(np.array([np.nan]*len(sub_data)), dtype='float'))
+                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}max', sub_data.column_class.from_sequence(np.array([np.nan]*len(sub_data)), dtype='float'))
+                # sub_data.dataframe[f"{other}min"] = np.nan
+                # sub_data.dataframe[f"{other}max"] = np.nan
 
             # TODO this is pretty ad hoc ; see GH2409
             for var in "xy":
