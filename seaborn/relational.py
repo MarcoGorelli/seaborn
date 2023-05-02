@@ -394,7 +394,9 @@ class _LinePlotter(_RelationalPlotter):
                 sort_vars = ["units", orient, other]
                 sort_cols = [var for var in sort_vars if var in self.variables]
                 sorted_indices = sub_data.sorted_indices(sort_cols)
-                sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
+                namespace = sub_data.__dataframe_namespace__()
+                rows = namespace.column_class().from_sequence([sorted_indices[i] for i in range(len(sorted_indices))], dtype='int64')
+                sub_data = sub_data.get_rows(rows)
             value_counts = sub_data.get_columns_by_name([orient]).groupby([orient]).size().get_column_by_name('size')
             if (
                 self.estimator is not None
@@ -414,16 +416,20 @@ class _LinePlotter(_RelationalPlotter):
                     _aggregates[orient] = _value
                     for key, val in _aggregates.items():
                         dicts[key].append(val)
+                namespace = sub_data.__dataframe_namespace__()
                 sub_data = sub_data.from_dict({
-                    key: sub_data.column_class.from_sequence(np.array(val), dtype='float')
+                    key: namespace.column_class().from_sequence(np.array(val), dtype='float64')
                     for key, val in dicts.items()
                 })
                 sorted_indices = sub_data.sorted_indices([orient])
-                sub_data = sub_data.get_rows([sorted_indices[i] for i in range(len(sorted_indices))])
+                namespace = sub_data.__dataframe_namespace__()
+                rows = namespace.column_class().from_sequence([sorted_indices[i] for i in range(len(sorted_indices))], dtype='float64')
+                sub_data = sub_data.get_rows(rows)
             else:
                 # TODO how to set a value in the Standard?
-                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}min', sub_data.column_class.from_sequence(np.array([np.nan]*len(sub_data)), dtype='float'))
-                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}max', sub_data.column_class.from_sequence(np.array([np.nan]*len(sub_data)), dtype='float'))
+                namespace = sub_data.__dataframe_namespace__()
+                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}min', namespace.column_class().from_sequence(np.array([np.nan]*len(sub_data)), dtype='float64'))
+                sub_data = sub_data.insert(sub_data.shape()[1], f'{other}max', namespace.column_class().from_sequence(np.array([np.nan]*len(sub_data)), dtype='float64'))
                 # sub_data.dataframe[f"{other}min"] = np.nan
                 # sub_data.dataframe[f"{other}max"] = np.nan
 
