@@ -157,9 +157,9 @@ def long_df(rng, using_polars):
     df["s_str"] = df["s"].astype(str)
 
     if using_polars:
-        import polars as pl
-        return pl.from_pandas(df.drop('s_cat', axis=1))
-    return df
+        # non-string categories not supported
+        df['s_cat'] = df['s_str'].astype('category')
+    return maybe_convert_to_polars(df)
 
 
 @pytest.fixture

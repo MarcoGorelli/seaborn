@@ -20,13 +20,16 @@ class TestPlotData:
         return variables
 
     def test_named_vectors(self, long_df, long_variables, using_polars):
-        if using_polars:
-            # no s_cat
-            return
+        # if using_polars:
+        #     # no s_cat
+        #     return
 
         p = PlotData(long_df, long_variables)
-        assert p.source_data is long_df
-        assert p.source_vars is long_variables
+        if using_polars:
+            long_df = long_df.to_pandas()
+        if not using_polars:
+            assert p.source_data is long_df
+            assert p.source_vars is long_variables
         for key, val in long_variables.items():
             assert p.names[key] == val
             assert_vector_equal(p.frame[key], long_df[val])

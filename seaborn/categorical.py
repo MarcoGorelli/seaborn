@@ -2618,7 +2618,6 @@ def swarmplot(
     ax=None, **kwargs
 ):
 
-    data = utils.try_convert_to_pandas(data)
     p = _CategoricalPlotterNew(
         data=data,
         variables=_CategoricalPlotterNew.get_semantics(locals()),

@@ -2099,9 +2099,10 @@ def pairplot(
                "please update your code.")
         warnings.warn(msg, UserWarning)
 
-    if not isinstance(data, pd.DataFrame):
+    if not hasattr(data, '__dataframe__'):
         raise TypeError(
-            f"'data' must be pandas DataFrame object, not: {type(data)}")
+            f"'data' must be pandas DataFrame object, "
+            f"or be interchangeable to a pandas DataFrame, not: {type(data)}")
 
     plot_kws = {} if plot_kws is None else plot_kws.copy()
     diag_kws = {} if diag_kws is None else diag_kws.copy()

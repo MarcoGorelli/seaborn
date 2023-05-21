@@ -705,7 +705,6 @@ def scatterplot(
     markers=True, style_order=None, legend="auto", ax=None,
     **kwargs
 ):
-    data = try_convert_to_pandas(data)
 
     variables = _ScatterPlotter.get_semantics(locals())
     p = _ScatterPlotter(data=data, variables=variables, legend=legend)
