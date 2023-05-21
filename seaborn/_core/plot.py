@@ -42,7 +42,7 @@ from seaborn._core.rules import categorical_order
 from seaborn._compat import set_scale_obj, set_layout_engine
 from seaborn.rcmod import axes_style, plotting_context
 from seaborn.palettes import color_palette
-from seaborn.utils import _version_predates, try_convert_to_pandas
+from seaborn.utils import _version_predates
 
 from typing import TYPE_CHECKING, TypedDict
 if TYPE_CHECKING:
@@ -309,7 +309,6 @@ class Plot:
 
         if args:
             data, variables = self._resolve_positionals(args, data, variables)
-        data = try_convert_to_pandas(data)
 
         unknown = [x for x in variables if x not in PROPERTIES]
         if unknown:
@@ -346,11 +345,9 @@ class Plot:
             err = "Plot() accepts no more than 3 positional arguments (data, x, y)."
             raise TypeError(err)
 
-        # TODO need some clearer way to differentiate data / vector here
-        # (There might be an abstract DataFrame class to use here?)
         if (
             isinstance(args[0], (abc.Mapping, pd.DataFrame))
-            or hasattr(args[0], '__dataframe__')
+            or hasattr(args[0], "__dataframe__")
         ):
             if data is not None:
                 raise TypeError("`data` given by both name and position.")

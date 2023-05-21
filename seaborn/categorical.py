@@ -1541,7 +1541,6 @@ class _LVPlotter(_CategoricalPlotter):
                  width, dodge, k_depth, linewidth, scale, outlier_prop,
                  trust_alpha, showfliers=True):
 
-        data = utils.try_convert_to_pandas(data)
         self.width = width
         self.dodge = dodge
         self.saturation = saturation
@@ -2491,6 +2490,7 @@ def stripplot(
     hue_norm=None, native_scale=False, formatter=None, legend="auto",
     ax=None, **kwargs
 ):
+
     p = _CategoricalPlotterNew(
         data=data,
         variables=_CategoricalPlotterNew.get_semantics(locals()),
@@ -2618,7 +2618,6 @@ def swarmplot(
     ax=None, **kwargs
 ):
 
-    data = utils.try_convert_to_pandas(data)
     p = _CategoricalPlotterNew(
         data=data,
         variables=_CategoricalPlotterNew.get_semantics(locals()),
@@ -3163,7 +3162,6 @@ def catplot(
     margin_titles=False, facet_kws=None, ci="deprecated",
     **kwargs
 ):
-    data = utils.try_convert_to_pandas(data)
 
     # Determine the plotting function
     try:

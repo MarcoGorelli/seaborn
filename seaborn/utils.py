@@ -1,6 +1,4 @@
 """Utility functions, mostly for internal use."""
-from __future__ import annotations
-
 import os
 import inspect
 import warnings
@@ -644,8 +642,8 @@ def load_dataset(name, cache=True, data_home=None, **kws):
     elif name == "dowjones":
         df["Date"] = pd.to_datetime(df["Date"])
 
-    import polars
-    return polars.from_pandas(df)
+    import polars as pl
+    return pl.from_pandas(df)
 
 
 def axis_ticklabels_overlap(labels):
@@ -897,19 +895,3 @@ def _disable_autolayout():
 def _version_predates(lib: ModuleType, version: str) -> bool:
     """Helper function for checking version compatibility."""
     return Version(lib.__version__) < Version(version)
-
-
-def try_convert_to_pandas(data: object | None) -> pd.DataFrame:
-    if data is None:
-        return None
-    elif isinstance(data, pd.DataFrame):
-        return data
-    elif hasattr(data, "__dataframe__") and _version_predates(pd, "2.0.2"):
-        msg = (
-            "Interchanging to pandas requires at least pandas version '2.0.2'. "
-            "Please upgrade pandas to at least version '2.0.2'."
-        )
-        raise RuntimeError(msg)
-    elif hasattr(data, "__dataframe__"):
-        return pd.api.interchange.from_dataframe(data)
-    return data

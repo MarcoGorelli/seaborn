@@ -21,7 +21,6 @@ from .palettes import (
 from .utils import (
     _check_argument,
     desaturate,
-    try_convert_to_pandas,
     get_color_cycle,
     remove_na,
 )
@@ -636,7 +635,6 @@ class VectorPlotter:
     _default_size_range = 1, 2  # Unused but needed in tests, ugh
 
     def __init__(self, data=None, variables={}):
-        data = try_convert_to_pandas(data)
 
         self._var_levels = {}
         # var_ordered is relevant only for categorical axis variables, and may
@@ -777,7 +775,7 @@ class VectorPlotter:
             # (Could be accomplished with a more general to_series() interface)
             flat_data = pd.Series(data).copy()
             names = {
-                "@values": getattr(data, 'name', None),
+                "@values": flat_data.name,
                 "@index": flat_data.index.name
             }
 
@@ -924,7 +922,7 @@ class VectorPlotter:
                     val in data
                     or (isinstance(val, (str, bytes)) and val in index)
                 )
-            except (KeyError, TypeError, ValueError):
+            except (KeyError, TypeError):
                 val_as_data_key = False
 
             if val_as_data_key:
