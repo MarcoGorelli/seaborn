@@ -21,6 +21,7 @@ from .palettes import (
 from .utils import (
     _check_argument,
     desaturate,
+    try_convert_to_pandas,
     get_color_cycle,
     remove_na,
 )
@@ -635,6 +636,7 @@ class VectorPlotter:
     _default_size_range = 1, 2  # Unused but needed in tests, ugh
 
     def __init__(self, data=None, variables={}):
+        data = try_convert_to_pandas(data)
 
         self._var_levels = {}
         # var_ordered is relevant only for categorical axis variables, and may
