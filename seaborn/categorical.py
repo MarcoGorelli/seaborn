@@ -1541,6 +1541,7 @@ class _LVPlotter(_CategoricalPlotter):
                  width, dodge, k_depth, linewidth, scale, outlier_prop,
                  trust_alpha, showfliers=True):
 
+        data = utils.try_convert_to_pandas(data)
         self.width = width
         self.dodge = dodge
         self.saturation = saturation
